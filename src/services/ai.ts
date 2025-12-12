@@ -121,22 +121,16 @@ export async function checkLLM7Connection(apiKey: string) {
         console.log('LLM7 Models count:', models.length);
         console.log('LLM7 Models:', models);
 
-        // LLM7 might not return models list via the API endpoint
-        // Provide a fallback list of common LLM7 models
-        if (models.length === 0) {
-            console.warn('No models returned from LLM7 API, using fallback model list');
+        // LLM7 provides these models: default, fast, and pro(paid)
+        // Reference: https://llm7.io/
+        console.warn('Using LLM7 native models list');
 
-            // Return common LLM7 models
-            return [
-                { id: 'gpt-4o', object: 'model' },
-                { id: 'gpt-4o-mini', object: 'model' },
-                { id: 'gpt-4-turbo', object: 'model' },
-                { id: 'gpt-4', object: 'model' },
-                { id: 'gpt-3.5-turbo', object: 'model' },
-            ];
-        }
-
-        return models;
+        // Return LLM7 native models
+        return [
+            { id: 'default', object: 'model' },
+            { id: 'fast', object: 'model' },
+            { id: 'pro', object: 'model' },
+        ];
     } catch (error) {
         console.error("LLM7 Connection Check Failed:", error);
         throw error;
@@ -161,24 +155,26 @@ async function analyzeWithGemini(imageBlob: Blob) {
 
     const prompt = `
       Analyze this image of a document (archival paper). 
-      Extract the following information into a JSON object. 
+      Extract the following information into a JSON object in ARABIC LANGUAGE ONLY.
       If a field is missing, use null or an empty string.
       
+      IMPORTANT: All text fields MUST be in Arabic. Translate any English text to Arabic.
+      
       Fields required:
-      - type: "Incoming" or "Outgoing" (Infer from context)
-      - document_date: The date written on the document header.
-      - reference_number: Ref No. / Number.
-      - sender: The entity sending the document (Simple String, not an object).
-      - sender_signatory: The name/title of the person signing it.
-      - receiver: The entity receiving it (Simple String, not an object).
-      - subject: The subject line.
-      - attachments_desc: "Al-Murfaqat" or attachments description.
-      - cc_distribution: "Copy to" / "Nuskha" list.
-      - content_summary: A brief summary of what the document is about (in English or Arabic as per document language, preferably Arabic if document is Arabic).
-      - raw_text: OCR all text on the page.
-      - structured_data_json: Any tabular data found (names, quantities, supply lists) or form fields.
+      - type: "وارد" or "صادر" (Incoming or Outgoing - use Arabic terms)
+      - document_date: The date written on the document header (in Arabic numerals/text).
+      - reference_number: رقم المرجع / Number (in Arabic if available, otherwise as-is).
+      - sender: The entity sending the document (in Arabic, Simple String, not an object).
+      - sender_signatory: The name/title of the person signing it (in Arabic).
+      - receiver: The entity receiving it (in Arabic, Simple String, not an object).
+      - subject: The subject line (in Arabic).
+      - attachments_desc: "المرفقات" or attachments description (in Arabic).
+      - cc_distribution: "نسخة إلى" / distribution list (in Arabic).
+      - content_summary: A brief summary of what the document is about (in Arabic).
+      - raw_text: OCR all text on the page (in Arabic if document is in Arabic).
+      - structured_data_json: Any tabular data found (in Arabic).
 
-      Output ONLY valid JSON.
+      Output ONLY valid JSON with all text in Arabic.
     `;
 
     const result = await model.generateContent([
@@ -214,24 +210,26 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
 
     const prompt = `
     Analyze this image of a document (archival paper). 
-      Extract the following information into a JSON object. 
+      Extract the following information into a JSON object in ARABIC LANGUAGE ONLY.
       If a field is missing, use null or an empty string.
       
+      IMPORTANT: All text fields MUST be in Arabic. Translate any English text to Arabic.
+      
       Fields required:
-      - type: "Incoming" or "Outgoing" (Infer from context)
-      - document_date: The date written on the document header.
-      - reference_number: Ref No. / Number.
-      - sender: The entity sending the document (Simple String, not an object).
-      - sender_signatory: The name/title of the person signing it.
-      - receiver: The entity receiving it (Simple String, not an object).
-      - subject: The subject line.
-      - attachments_desc: "Al-Murfaqat" or attachments description.
-      - cc_distribution: "Copy to" / "Nuskha" list.
-      - content_summary: A brief summary of what the document is about (in English or Arabic as per document language, preferably Arabic if document is Arabic).
-      - raw_text: OCR all text on the page.
-      - structured_data_json: Any tabular data found (names, quantities, supply lists) or form fields.
+      - type: "وارد" or "صادر" (Incoming or Outgoing - use Arabic terms)
+      - document_date: The date written on the document header (in Arabic numerals/text).
+      - reference_number: رقم المرجع / Number (in Arabic if available, otherwise as-is).
+      - sender: The entity sending the document (in Arabic, Simple String, not an object).
+      - sender_signatory: The name/title of the person signing it (in Arabic).
+      - receiver: The entity receiving it (in Arabic, Simple String, not an object).
+      - subject: The subject line (in Arabic).
+      - attachments_desc: "المرفقات" or attachments description (in Arabic).
+      - cc_distribution: "نسخة إلى" / distribution list (in Arabic).
+      - content_summary: A brief summary of what the document is about (in Arabic).
+      - raw_text: OCR all text on the page (in Arabic if document is in Arabic).
+      - structured_data_json: Any tabular data found (in Arabic).
 
-      Output ONLY valid JSON.
+      Output ONLY valid JSON with all text in Arabic.
       `;
 
     // Get selected model from settings, or use defaults
@@ -245,16 +243,21 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
         // Check if the selected model is compatible with the current provider
         const isGeminiModel = selectedModel.includes('gemini') || selectedModel.includes('models/');
         const isGPTModel = selectedModel.includes('gpt') || selectedModel.includes('o1');
+        const isLLM7Model = selectedModel === 'default' || selectedModel === 'fast' || selectedModel === 'pro';
 
         if (provider === 'llm7') {
-            // For LLM7, use the selected model if it's a GPT model, otherwise default to gpt-4o-mini
-            model = isGPTModel ? selectedModel : 'gpt-4o-mini';
+            // For LLM7, use the selected model if it's a valid LLM7 model (default, fast, pro), otherwise use the selected model as-is
+            if (isLLM7Model || isGPTModel) {
+                model = selectedModel;
+            } else {
+                model = 'default'; // Fallback to default model for LLM7
+            }
         } else if (provider === 'openai') {
             // For OpenAI, use the selected model if it's a GPT model, otherwise default to gpt-4o
             model = isGPTModel ? selectedModel : 'gpt-4o';
         }
     } else if (provider === 'llm7') {
-        model = 'gpt-4o-mini'; // Default for LLM7
+        model = 'default'; // Default for LLM7
     }
 
     console.log(`Using model: ${model} for provider: ${provider}`);
