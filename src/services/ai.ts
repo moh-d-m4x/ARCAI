@@ -241,7 +241,6 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
 
     if (selectedModel) {
         // Check if the selected model is compatible with the current provider
-        const isGeminiModel = selectedModel.includes('gemini') || selectedModel.includes('models/');
         const isGPTModel = selectedModel.includes('gpt') || selectedModel.includes('o1');
         const isLLM7Model = selectedModel === 'default' || selectedModel === 'fast' || selectedModel === 'pro';
 
