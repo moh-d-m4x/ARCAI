@@ -5,11 +5,21 @@ import { Search, FileText, ArrowUpRight, ArrowDownLeft, Calendar, User } from 'l
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { normalizeArabicText } from '../utils/textUtils';
+import { DocumentThumbnail } from '../components/DocumentThumbnail';
+
+import { DocumentInlineEdit } from '../components/DocumentInlineEdit';
+import { ImageViewer } from '../components/ImageViewer';
 
 export const Dashboard: React.FC = () => {
     const { dir, t } = useLanguage();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
+    const [viewingDocBlob, setViewingDocBlob] = useState<Blob | null>(null);
+
+    const toggleExpand = (id: number) => {
+        setExpandedDocId(prev => prev === id ? null : id);
+    };
 
     const documents = useLiveQuery(async () => {
         let collection = db.documents.orderBy('created_date').reverse();
@@ -66,7 +76,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="documents-list">
                 {documents?.map(doc => (
-                    <div key={doc.id} className="glass-panel document-card">
+                    <div key={doc.id} className={`glass-panel document-card ${expandedDocId === doc.id ? 'expanded' : ''}`} onClick={() => doc.id && toggleExpand(doc.id)}>
                         <div className="doc-icon">
                             {doc.type === 'Incoming' ? <ArrowDownLeft className="text-blue-500" /> : <ArrowUpRight className="text-orange-500" />}
                         </div>
@@ -83,12 +93,21 @@ export const Dashboard: React.FC = () => {
                                 </span>
                             </div>
                             <p className="doc-summary">{doc.content_summary}</p>
+
+                            {expandedDocId === doc.id && (
+                                <DocumentInlineEdit doc={doc} />
+                            )}
                         </div>
-                        <div className="doc-actions">
-                            <button className="btn btn-outline btn-sm">{t('view_btn')}</button>
+                        {/* Replaced View button with Thumbnail */}
+                        <div onClick={(e) => { e.stopPropagation(); if (doc.image_data) setViewingDocBlob(doc.image_data); }}>
+                            <DocumentThumbnail doc={doc} />
                         </div>
                     </div>
                 ))}
+
+                {viewingDocBlob && (
+                    <ImageViewer blob={viewingDocBlob} onClose={() => setViewingDocBlob(null)} />
+                )}
 
                 {documents?.length === 0 && (
                     <div className="empty-state">

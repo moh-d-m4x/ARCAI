@@ -193,9 +193,12 @@ async function analyzeWithGemini(imageBlob: Blob) {
     return JSON.parse(jsonStr);
 }
 
-// Analyze document using OpenAI or LLM7.io
+// Analyze document using OpenAI, LLM7.io
 async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
-    const client = provider === 'openai' ? await getOpenAIClient() : await getLLM7Client();
+    let client;
+    if (provider === 'openai') client = await getOpenAIClient();
+    else if (provider === 'llm7') client = await getLLM7Client();
+    else throw new Error("Invalid provider");
 
     // Convert Blob to Base64
     const base64Data = await new Promise<string>((resolve, reject) => {
@@ -229,7 +232,11 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
       - raw_text: OCR all text on the page (in Arabic if document is in Arabic).
       - structured_data_json: Any tabular data found (in Arabic).
 
-      Output ONLY valid JSON with all text in Arabic.
+      OUTPUT FORMAT:
+      - Return ONLY the raw JSON object.
+      - DO NOT include any comments (like // or /* */).
+      - DO NOT include markdown formatting (like \`\`\`json).
+      - Ensure all keys and string values are properly quoted.
       `;
 
     // Get selected model from settings, or use defaults
@@ -259,7 +266,7 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
         model = 'default'; // Default for LLM7
     }
 
-    console.log(`Using model: ${model} for provider: ${provider}`);
+    console.log(`Using model: ${model} for provider: ${provider} `);
 
     const response = await client.chat.completions.create({
         model: model,
@@ -285,23 +292,30 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
 
     // Try to extract JSON from response
     try {
-        // First, try the simple cleanup
+        // 1. Remove markdown code blocks
         let jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-        // If parsing fails, try to find JSON object in the text
-        try {
-            return JSON.parse(jsonStr);
-        } catch {
-            // Look for JSON object pattern in the text
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                jsonStr = jsonMatch[0];
-                return JSON.parse(jsonStr);
-            }
-            throw new Error('No valid JSON found in response');
+        // 2. Remove single-line comments // ...
+        jsonStr = jsonStr.replace(/\/\/.*$/gm, '');
+
+        // 3. Remove multi-line comments /* ... */
+        jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
+
+        // 4. Try to find JSON from first '{' to last '}'
+        const firstOpen = jsonStr.indexOf('{');
+        const lastClose = jsonStr.lastIndexOf('}');
+
+        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+            jsonStr = jsonStr.substring(firstOpen, lastClose + 1);
         }
+
+        // 5. Attempt parse
+        return JSON.parse(jsonStr);
+
     } catch (parseError) {
         console.error('Failed to parse JSON from response:', text);
+        // Fallback: If it fails, try a more aggressive cleanup or regex extract?
+        // For now, return a partial error object or throw with details
         throw new Error(`AI returned invalid JSON. Response: ${text.substring(0, 200)}...`);
     }
 }

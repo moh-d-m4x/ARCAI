@@ -83,6 +83,10 @@ const translations: Translations = {
     'summary_label': { ar: 'محتوى المذكرة بشكل مختصر:', en: 'Summary:' },
     'confirm_selection': { ar: 'تأكيد الاختيار', en: 'Confirm Selection' },
     'upload_image_first': { ar: 'يرجى رفع صورة أولاً.', en: 'Please upload an image first.' },
+    'undo': { ar: 'تراجع', en: 'Undo' },
+    'delete_doc_btn': { ar: 'حذف', en: 'Delete' },
+    'delete_confirm': { ar: 'هل أنت متأكد من حذف هذا المستند؟', en: 'Are you sure you want to delete this document?' },
+    'cancel': { ar: 'إلغاء', en: 'Cancel' },
 };
 
 interface LanguageContextType {
