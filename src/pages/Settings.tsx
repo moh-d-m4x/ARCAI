@@ -35,6 +35,11 @@ export const Settings: React.FC = () => {
 
     const [availableModels, setAvailableModels] = useState<string[]>([]);
 
+    // Clear available models when provider changes
+    useEffect(() => {
+        setAvailableModels([]);
+    }, [aiProvider]);
+
     const handleSave = async () => {
         const items = await db.settings.toArray();
         const existingId = items[0]?.id;
@@ -91,7 +96,7 @@ export const Settings: React.FC = () => {
         } catch (error: any) {
             console.error("Failed to save settings:", error);
             setStatus(`Failed: ${error.message}`);
-            setAvailableModels([]);
+            // Don't clear available models on save fail, user might just have a bad key but wants to keep UI state
         }
     };
 
@@ -214,47 +219,39 @@ export const Settings: React.FC = () => {
                         />
                     </div>
                 )}
-            </div>
 
-            <button onClick={handleSave} className="btn btn-large btn-primary">
-                {t('save_settings')}
-            </button>
-
-            {status && (
-                <div className={`status-message ${status.includes('Failed') ? 'error' : 'success'}`} style={{
-                    backgroundColor: status.includes('Failed') ? '#fee2e2' : '#dcfce7',
-                    color: status.includes('Failed') ? '#b91c1c' : '#166534',
-                    borderColor: status.includes('Failed') ? '#fca5a5' : '#bbf7d0',
-                }}>
-                    {status}
-                </div>
-            )}
-
-            {availableModels.length > 0 && (
-                <div className="glass-panel section mt-4">
-                    <h3 className="section-title" style={{ fontSize: '1rem' }}>{t('ai_model')}</h3>
-
-                    <div className="form-group">
+                {/* Available Models List (Moved here) */}
+                {availableModels.length > 0 && (
+                    <div className="form-group" style={{ marginTop: '2rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
+                        <label>{t('ai_model')}</label>
                         <select
                             value={selectedModel}
                             onChange={(e) => setSelectedModel(e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem' }}
+                            style={{ width: '100%', padding: '0.75rem' }}
                         >
                             {availableModels.map(model => {
                                 const cleanName = model.replace('models/', '');
                                 return <option key={model} value={cleanName}>{cleanName}</option>;
                             })}
                         </select>
-                        <button
-                            className="btn btn-primary mt-4"
-                            onClick={handleSave}
-                        >
-                            {t('confirm_selection')}
-                        </button>
                     </div>
+                )}
 
-                </div>
-            )}
+                {status && (
+                    <div className={`status-message ${status.includes('Failed') ? 'error' : 'success'}`} style={{
+                        marginTop: '1.5rem',
+                        backgroundColor: status.includes('Failed') ? '#fee2e2' : '#dcfce7',
+                        color: status.includes('Failed') ? '#b91c1c' : '#166534',
+                        borderColor: status.includes('Failed') ? '#fca5a5' : '#bbf7d0',
+                    }}>
+                        {status}
+                    </div>
+                )}
+
+                <button onClick={handleSave} className="btn btn-large btn-primary" style={{ marginTop: '1.5rem', width: '100%' }}>
+                    {t('save_settings')}
+                </button>
+            </div>
         </div>
     );
 };
