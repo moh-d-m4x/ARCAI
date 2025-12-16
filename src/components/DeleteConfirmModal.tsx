@@ -61,7 +61,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                 className={`delete-modal ${isClosing ? 'scale-out' : 'animate-scale-in'}`}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="delete-modal-icon">
+                <div className="delete-modal-icon bg-red-500/20 text-red-500">
                     <AlertTriangle size={32} />
                 </div>
 

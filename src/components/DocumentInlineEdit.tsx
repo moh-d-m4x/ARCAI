@@ -73,7 +73,7 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
     return (
         <div className="inline-edit-form p-4 border-t border-glass-border mt-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div className="form-grid">
-                <div className="form-group full-width">
+                <div className="form-group">
                     <label>{t('doc_type')}</label>
                     <select
                         name="type"
@@ -84,6 +84,15 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                         <option value="Incoming">{t('type_incoming')}</option>
                         <option value="Outgoing">{t('type_outgoing')}</option>
                     </select>
+                </div>
+
+                <div className="form-group">
+                    <label>{t('created_date')}</label>
+                    <input
+                        value={doc.created_date ? doc.created_date.split('T')[0] : ''}
+                        disabled
+                        className="bg-gray-100 cursor-not-allowed opacity-70"
+                    />
                 </div>
 
                 <div className="form-group">

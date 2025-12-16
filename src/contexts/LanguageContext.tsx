@@ -83,6 +83,7 @@ const translations: Translations = {
     'save_doc_btn': { ar: 'حفظ المذكرة', en: 'Save Document' },
     'doc_details_title': { ar: 'تفاصيل المذكرة', en: 'Document Details' },
     'analysis_failed_error': { ar: 'فشل التحليل. تحقق من وحدة التحكم للتفاصيل. تأكد من ضبط مفتاح API.', en: 'Analysis failed. Check console for details. Ensure API Key is set.' },
+    'model_overloaded_error': { ar: 'نموذج الذكاء الاصطناعي مشغول حالياً. يرجى المحاولة مرة أخرى بعد لحظات.', en: 'The AI model is currently overloaded. Please try again in a few moments.' },
 
     // Form Fields
     'doc_type': { ar: 'نوع المذكرة:', en: 'Type:' },
@@ -106,7 +107,16 @@ const translations: Translations = {
     'cancel': { ar: 'إلغاء', en: 'Cancel' },
     'ok': { ar: 'حسناً', en: 'OK' },
     'save_failed': { ar: 'فشل حفظ المستند.', en: 'Failed to save document.' },
+    'save_success_message': { ar: 'تم حفظ المستند بنجاح.', en: 'Document saved successfully.' },
     'go_to_page': { ar: 'انتقال', en: 'Go' },
+
+    // Export
+    'export_images': { ar: 'تصدير الصور', en: 'Export Images' },
+    'export_as_png': { ar: 'تصدير كـ PNG', en: 'Export as PNG' },
+    'export_as_pdf': { ar: 'تصدير كـ PDF', en: 'Export as PDF' },
+
+    // Additional Fields
+    'created_date': { ar: 'تاريخ الإضافة:', en: 'Created Date:' },
 };
 
 interface LanguageContextType {

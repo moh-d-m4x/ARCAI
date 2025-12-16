@@ -3,7 +3,7 @@ import { Upload, Save, Loader2, Sparkles } from 'lucide-react';
 import { analyzeDocumentImage } from '../services/ai';
 import { db } from '../db';
 import type { ArcaiDocument } from '../types';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageCarousel } from '../components/ImageCarousel';
 import { NotificationModal } from '../components/NotificationModal';
@@ -11,7 +11,7 @@ import { NotificationModal } from '../components/NotificationModal';
 
 export const Entry: React.FC = () => {
     const { t } = useLanguage();
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // Removed as we stay on page
     const [files, setFiles] = useState<File[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [formData, setFormData] = useState<Partial<ArcaiDocument>>({
@@ -92,8 +92,17 @@ export const Entry: React.FC = () => {
                 created_date: new Date().toISOString()
             } as ArcaiDocument);
 
-            console.log('Document saved successfully. Navigating to dashboard.');
-            navigate('/');
+            console.log('Document saved successfully.');
+            showNotification(t('save_success_message'), 'success');
+
+            // Reset form for next entry
+            setFiles([]);
+            setFormData({
+                type: 'Incoming',
+                created_date: new Date().toISOString(),
+            });
+            // Refresh next ID
+            db.getNextDocumentId().then(setNextId);
         } catch (error) {
             console.error('Save failed:', error);
             showNotification(t('save_failed'), 'error');
@@ -123,9 +132,13 @@ export const Entry: React.FC = () => {
                 }
                 return newData;
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Full Analysis Error:', error);
-            showNotification(t('analysis_failed_error'), 'error');
+            if (error?.message === 'MODEL_OVERLOADED') {
+                showNotification(t('model_overloaded_error'), 'error');
+            } else {
+                showNotification(t('analysis_failed_error'), 'error');
+            }
         } finally {
             setIsAnalyzing(false);
         }

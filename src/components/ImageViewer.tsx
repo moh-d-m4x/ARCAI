@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Trash2, ImagePlus } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Trash2, ImagePlus, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
@@ -9,9 +10,16 @@ interface ImageViewerProps {
     onClose: () => void;
     onDeleteImage?: (imageIndex: number) => void;
     onAddImages?: (files: File[], currentIndex: number) => void;
+    documentName?: string;
 }
 
-export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDeleteImage, onAddImages }) => {
+// Helper function to sanitize filenames for Windows
+const sanitizeFilename = (name: string): string => {
+    // Windows forbidden characters: \ / : * ? " < > |
+    return name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'image';
+};
+
+export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDeleteImage, onAddImages, documentName }) => {
     const { dir } = useLanguage();
     const isRtl = dir === 'rtl';
 
@@ -25,6 +33,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDel
     const [showControls, setShowControls] = useState(true);
     const [isClosing, setIsClosing] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     // Dynamic button positions
     // In LTR: prevBtn is Left, nextBtn is Right
@@ -300,6 +309,111 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDel
                 <button className="icon-btn" onClick={() => setScale(s => Math.min(s + 0.5, 5))}>
                     <ZoomIn size={20} />
                 </button>
+                <div style={{ position: 'relative' }}>
+                    <button
+                        className="icon-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowExportMenu(prev => !prev);
+                        }}
+                        title="Export image"
+                    >
+                        <Download size={20} />
+                    </button>
+                    {showExportMenu && (
+                        <div
+                            className="export-dropdown"
+                            style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                marginTop: '8px',
+                                background: 'rgba(0, 0, 0, 0.85)',
+                                borderRadius: '8px',
+                                padding: '4px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '2px',
+                                minWidth: '100px',
+                                zIndex: 1000,
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                className="export-option"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'white',
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    textAlign: 'center',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                onClick={() => {
+                                    if (imageUrl) {
+                                        const link = document.createElement('a');
+                                        link.href = imageUrl;
+                                        link.download = `${sanitizeFilename(documentName || 'image')}-${currentIndex + 1}.png`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }
+                                    setShowExportMenu(false);
+                                }}
+                            >
+                                PNG
+                            </button>
+                            <button
+                                className="export-option"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'white',
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    textAlign: 'center',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                onClick={async () => {
+                                    if (imageUrl && imageRef.current) {
+                                        const img = imageRef.current;
+                                        const imgWidth = img.naturalWidth;
+                                        const imgHeight = img.naturalHeight;
+
+                                        // Create PDF with image dimensions (convert px to mm, 1px ≈ 0.264583mm)
+                                        const pxToMm = 0.264583;
+                                        const pdfWidth = imgWidth * pxToMm;
+                                        const pdfHeight = imgHeight * pxToMm;
+
+                                        const pdf = new jsPDF({
+                                            orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+                                            unit: 'mm',
+                                            format: [pdfWidth, pdfHeight]
+                                        });
+
+                                        pdf.addImage(imageUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                        pdf.save(`${sanitizeFilename(documentName || 'image')}-${currentIndex + 1}.pdf`);
+                                    }
+                                    setShowExportMenu(false);
+                                }}
+                            >
+                                PDF
+                            </button>
+                        </div>
+                    )}
+                </div>
                 {onAddImages && (
                     <button
                         className="icon-btn"

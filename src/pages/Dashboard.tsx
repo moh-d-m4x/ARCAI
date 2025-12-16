@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { Search, FileText, ArrowUpRight, ArrowDownLeft, Calendar, User } from 'lucide-react';
+import { Search, FileText, ArrowUpRight, ArrowDownLeft, Calendar, User, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { normalizeArabicText } from '../utils/textUtils';
@@ -14,6 +15,12 @@ import { Pagination } from '../components/Pagination';
 
 const ITEMS_PER_PAGE = 10;
 
+// Helper function to sanitize filenames for Windows
+const sanitizeFilename = (name: string): string => {
+    // Windows forbidden characters: \ / : * ? " < > |
+    return name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'document';
+};
+
 export const Dashboard: React.FC = () => {
     const { dir, t } = useLanguage();
     const navigate = useNavigate();
@@ -22,6 +29,7 @@ export const Dashboard: React.FC = () => {
     const [viewingDoc, setViewingDoc] = useState<ArcaiDocument | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [filterType, setFilterType] = useState<'all' | 'Incoming' | 'Outgoing'>('all');
+    const [exportMenuDocId, setExportMenuDocId] = useState<number | null>(null);
 
     const toggleExpand = (id: number) => {
         setExpandedDocId(prev => prev === id ? null : id);
@@ -263,12 +271,161 @@ export const Dashboard: React.FC = () => {
                                 <DocumentInlineEdit doc={doc} />
                             )}
                         </div>
-                        {/* Replaced View button with Thumbnail */}
-                        <div onClick={(e) => { e.stopPropagation(); if (doc.image_data) setViewingDoc(doc); }}>
-                            <DocumentThumbnail
-                                doc={doc}
-                                onAddImages={(files) => doc.id && handleAddImages(doc.id, files)}
-                            />
+                        {/* Thumbnail and Export button container */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            <div onClick={(e) => { e.stopPropagation(); if (doc.image_data) setViewingDoc(doc); }}>
+                                <DocumentThumbnail
+                                    doc={doc}
+                                    onAddImages={(files) => doc.id && handleAddImages(doc.id, files)}
+                                />
+                            </div>
+                            {/* Export button - only show when expanded and has images */}
+                            {expandedDocId === doc.id && doc.image_data && (
+                                <div className="animate-fade-in" style={{ position: 'relative' }}>
+                                    <button
+                                        className="icon-btn"
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)'
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setExportMenuDocId(prev => prev === doc.id ? null : (doc.id ?? null));
+                                        }}
+                                        title={t('export_images')}
+                                    >
+                                        <Download size={18} />
+                                    </button>
+                                    {exportMenuDocId === doc.id && (
+                                        <div
+                                            className="export-dropdown"
+                                            style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                marginTop: '8px',
+                                                background: 'rgba(0, 0, 0, 0.9)',
+                                                borderRadius: '8px',
+                                                padding: '4px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '2px',
+                                                minWidth: '120px',
+                                                zIndex: 1000,
+                                                backdropFilter: 'blur(10px)',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <button
+                                                className="export-option"
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    padding: '10px 14px',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '6px',
+                                                    fontSize: '14px',
+                                                    textAlign: 'center',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                onClick={async () => {
+                                                    const images = getDocImages(doc);
+                                                    for (let i = 0; i < images.length; i++) {
+                                                        const url = URL.createObjectURL(images[i]);
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.download = `${sanitizeFilename(doc.subject || 'image')}-${i + 1}.png`;
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        document.body.removeChild(link);
+                                                        URL.revokeObjectURL(url);
+                                                        if (i < images.length - 1) {
+                                                            await new Promise(r => setTimeout(r, 300));
+                                                        }
+                                                    }
+                                                    setExportMenuDocId(null);
+                                                }}
+                                            >
+                                                PNG
+                                            </button>
+                                            <button
+                                                className="export-option"
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    padding: '10px 14px',
+                                                    cursor: 'pointer',
+                                                    borderRadius: '6px',
+                                                    fontSize: '14px',
+                                                    textAlign: 'center',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                onClick={async () => {
+                                                    const images = getDocImages(doc);
+                                                    if (images.length === 0) return;
+
+                                                    const firstUrl = URL.createObjectURL(images[0]);
+                                                    const firstImg = new Image();
+                                                    firstImg.src = firstUrl;
+
+                                                    await new Promise<void>((resolve) => {
+                                                        firstImg.onload = () => resolve();
+                                                    });
+
+                                                    const pxToMm = 0.264583;
+                                                    const pdfWidth = firstImg.naturalWidth * pxToMm;
+                                                    const pdfHeight = firstImg.naturalHeight * pxToMm;
+
+                                                    const pdf = new jsPDF({
+                                                        orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+                                                        unit: 'mm',
+                                                        format: [pdfWidth, pdfHeight]
+                                                    });
+
+                                                    pdf.addImage(firstUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                                                    URL.revokeObjectURL(firstUrl);
+
+                                                    for (let i = 1; i < images.length; i++) {
+                                                        const url = URL.createObjectURL(images[i]);
+                                                        const img = new Image();
+                                                        img.src = url;
+
+                                                        await new Promise<void>((resolve) => {
+                                                            img.onload = () => resolve();
+                                                        });
+
+                                                        const imgPdfWidth = img.naturalWidth * pxToMm;
+                                                        const imgPdfHeight = img.naturalHeight * pxToMm;
+
+                                                        pdf.addPage([imgPdfWidth, imgPdfHeight], imgPdfWidth > imgPdfHeight ? 'landscape' : 'portrait');
+                                                        pdf.addImage(url, 'PNG', 0, 0, imgPdfWidth, imgPdfHeight);
+                                                        URL.revokeObjectURL(url);
+                                                    }
+
+                                                    pdf.save(`${sanitizeFilename(doc.subject || 'document')}.pdf`);
+                                                    setExportMenuDocId(null);
+                                                }}
+                                            >
+                                                PDF
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -279,6 +436,7 @@ export const Dashboard: React.FC = () => {
                         onClose={() => setViewingDoc(null)}
                         onDeleteImage={handleDeleteImage}
                         onAddImages={(files, index) => viewingDoc.id && handleAddImages(viewingDoc.id, files, index)}
+                        documentName={viewingDoc.subject}
                     />
                 )}
 
