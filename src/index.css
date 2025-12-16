@@ -1366,3 +1366,139 @@ textarea:focus {
   height: 100%;
   object-fit: cover;
 }
+
+/* Pagination Component */
+.pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-bottom: 2rem;
+  width: 100%;
+}
+
+.pagination-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s;
+}
+
+.pagination-number:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.pagination-number.active {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: scale(1.1);
+}
+
+.pagination-ellipsis {
+  color: var(--text-secondary);
+  padding: 0 0.5rem;
+}
+
+.jump-to-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 2rem;
+  border: 1px solid var(--glass-border);
+}
+
+/* RTL: Keep natural order (input, divider, button) - button appears on left visually */
+[dir="rtl"] .jump-to-page {
+  flex-direction: row-reverse;
+}
+
+.jump-input {
+  width: 2.5rem;
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--glass-border);
+  text-align: center;
+  font-family: monospace;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.jump-input:focus {
+  border-bottom-color: var(--accent-color);
+  box-shadow: none;
+}
+
+.jump-divider {
+  color: var(--text-secondary);
+}
+
+.jump-btn {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.jump-btn:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}

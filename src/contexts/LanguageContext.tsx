@@ -90,7 +90,7 @@ const translations: Translations = {
     'type_outgoing': { ar: 'صادر', en: 'Outgoing' },
     'ref_number': { ar: 'رقم المرجع:', en: 'Reference No:' },
     'doc_date': { ar: 'تاريخ المذكرة:', en: 'Date:' },
-    'date_placeholder': { ar: 'YYYY-MM-DD او نص', en: 'YYYY-MM-DD or Text' },
+    'date_placeholder': { ar: '', en: '' },
     'sender_label': { ar: 'الجهة:', en: 'Sender:' },
     'signatory_label': { ar: 'الختم/التوقيع:', en: 'Signatory:' },
     'receiver_label': { ar: 'المستلم:', en: 'Receiver:' },
@@ -106,6 +106,7 @@ const translations: Translations = {
     'cancel': { ar: 'إلغاء', en: 'Cancel' },
     'ok': { ar: 'حسناً', en: 'OK' },
     'save_failed': { ar: 'فشل حفظ المستند.', en: 'Failed to save document.' },
+    'go_to_page': { ar: 'انتقال', en: 'Go' },
 };
 
 interface LanguageContextType {

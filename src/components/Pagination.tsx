@@ -34,15 +34,6 @@ export const Pagination: React.FC<PaginationProps> = ({
         }
     };
 
-    const handleBlur = () => {
-        const page = parseInt(pageInput);
-        if (!isNaN(page) && page >= 1 && page <= totalPages) {
-            onPageChange(page);
-        } else {
-            setPageInput(currentPage.toString());
-        }
-    };
-
     // Generate page numbers to show
     const getPageNumbers = () => {
         const pages = [];
@@ -87,11 +78,20 @@ export const Pagination: React.FC<PaginationProps> = ({
         return pages;
     };
 
+    const handleGoToPage = () => {
+        const page = parseInt(pageInput);
+        if (!isNaN(page) && page >= 1 && page <= totalPages) {
+            onPageChange(page);
+        } else {
+            setPageInput(currentPage.toString());
+        }
+    };
+
     return (
-        <div className="pagination-container flex flex-col items-center gap-4 mt-8 pb-8">
-            <div className="flex items-center gap-2">
+        <div className="pagination-container">
+            <div className="pagination-nav">
                 <button
-                    className="pagination-btn icon-btn p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="pagination-btn"
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     title={t('prev_page') || 'Previous'}
@@ -99,17 +99,14 @@ export const Pagination: React.FC<PaginationProps> = ({
                     {dir === 'rtl' ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                 </button>
 
-                <div className="pagination-numbers flex items-center gap-2">
+                <div className="pagination-numbers">
                     {getPageNumbers().map((p, idx) => (
                         <React.Fragment key={idx}>
                             {p === '...' ? (
-                                <span className="pagination-ellipsis px-2 text-gray-500">...</span>
+                                <span className="pagination-ellipsis">...</span>
                             ) : (
                                 <button
-                                    className={`pagination-number w-10 h-10 rounded-full flex items-center justify-center transition-all font-medium ${currentPage === p
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-110'
-                                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-                                        }`}
+                                    className={`pagination-number ${currentPage === p ? 'active' : ''}`}
                                     onClick={() => typeof p === 'number' && onPageChange(p)}
                                 >
                                     {p}
@@ -120,7 +117,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                 </div>
 
                 <button
-                    className="pagination-btn icon-btn p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="pagination-btn"
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     title={t('next_page') || 'Next'}
@@ -129,18 +126,22 @@ export const Pagination: React.FC<PaginationProps> = ({
                 </button>
             </div>
 
-            <div className="jump-to-page flex items-center gap-3 text-sm text-gray-400 bg-gray-800/50 px-4 py-2 rounded-full backdrop-blur-sm border border-white/5">
-                <span className="font-medium">{t('go_to_page') || 'Go to page'}</span>
+            <div className="jump-to-page">
                 <input
                     type="text"
                     inputMode="numeric"
                     value={pageInput}
                     onChange={(e) => setPageInput(e.target.value)}
                     onKeyDown={handleInputKey}
-                    onBlur={handleBlur}
-                    className="w-12 px-0 py-1 bg-transparent border-b border-gray-600 text-center focus:border-blue-500 outline-none transition-colors text-white font-mono"
+                    className="jump-input"
                 />
-                <span className="text-gray-600">/ {totalPages}</span>
+                <span className="jump-divider">/ {totalPages}</span>
+                <button
+                    className="jump-btn"
+                    onClick={handleGoToPage}
+                >
+                    {t('go_to_page') || 'Go'}
+                </button>
             </div>
         </div>
     );
