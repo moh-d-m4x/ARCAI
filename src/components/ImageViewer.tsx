@@ -164,8 +164,36 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDel
     useEffect(() => {
         handleMouseMoveControl();
         window.addEventListener('mousemove', handleMouseMoveControl);
-        return () => window.removeEventListener('mousemove', handleMouseMoveControl);
-    }, []);
+
+        // Keyboard navigation
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') {
+                if (isRtl) {
+                    // Right arrow = Previous image in RTL
+                    if (currentIndex > 0) setCurrentIndex(c => c - 1);
+                } else {
+                    // Right arrow = Next image in LTR
+                    if (currentIndex < images.length - 1) setCurrentIndex(c => c + 1);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                if (isRtl) {
+                    // Left arrow = Next image in RTL
+                    if (currentIndex < images.length - 1) setCurrentIndex(c => c + 1);
+                } else {
+                    // Left arrow = Previous image in LTR
+                    if (currentIndex > 0) setCurrentIndex(c => c - 1);
+                }
+            } else if (e.key === 'Escape') {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMoveControl);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [currentIndex, images.length, isRtl]);
 
     const handleClose = () => {
         setIsClosing(true);

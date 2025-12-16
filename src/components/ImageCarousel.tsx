@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Plus } from 'lucide-react';
 
 interface ImageCarouselProps {
     files: File[];
     onDeleteImage?: (index: number) => void;
+    onAddImage?: () => void;
 }
 
-export const ImageCarousel: React.FC<ImageCarouselProps> = ({ files, onDeleteImage }) => {
+export const ImageCarousel: React.FC<ImageCarouselProps> = ({ files, onDeleteImage, onAddImage }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [imageUrls, setImageUrls] = useState<string[]>([]);
 
@@ -27,7 +28,8 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({ files, onDeleteIma
         }
     }, [files.length, currentIndex]);
 
-    const handleDeleteCurrent = () => {
+    const handleDeleteCurrent = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (onDeleteImage) {
             onDeleteImage(currentIndex);
             // Adjust index if we're deleting the last image
@@ -103,12 +105,30 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({ files, onDeleteIma
                 </div>
             )}
 
-            {/* Delete Button - top right corner */}
-            {onDeleteImage && (
-                <button className="carousel-delete-btn" onClick={handleDeleteCurrent} aria-label="Delete current image">
-                    <Trash2 size={18} />
-                </button>
-            )}
+            {/* Top Right Actions */}
+            <div className="carousel-actions-top-right">
+                {onAddImage && (
+                    <button
+                        className="carousel-action-btn add-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAddImage();
+                        }}
+                        aria-label="Add image"
+                    >
+                        <Plus size={18} />
+                    </button>
+                )}
+                {onDeleteImage && (
+                    <button
+                        className="carousel-action-btn delete-btn"
+                        onClick={handleDeleteCurrent}
+                        aria-label="Delete current image"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

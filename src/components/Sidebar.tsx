@@ -1,6 +1,7 @@
 import { useLanguage } from '../contexts/LanguageContext';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, FileText, Settings } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const Sidebar: React.FC = () => {
     const { t } = useLanguage();
@@ -15,7 +16,9 @@ export const Sidebar: React.FC = () => {
         <aside className="sidebar">
             <div className="sidebar-inner glass">
                 <div className="brand">
-                    <div className="brand-logo">A</div>
+                    <div className="brand-logo-wrapper">
+                        <Logo size={40} />
+                    </div>
                     <h1 className="brand-name">ARCAI</h1>
                 </div>
 
