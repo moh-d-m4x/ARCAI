@@ -3,15 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
 import { LanguageProvider } from './contexts/LanguageContext';
-import { RateLimitProvider } from './contexts/RateLimitContext';
 
 console.log('Mounting React Application...');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LanguageProvider>
-      <RateLimitProvider>
-        <App />
-      </RateLimitProvider>
+      <App />
     </LanguageProvider>
   </StrictMode>,
 )

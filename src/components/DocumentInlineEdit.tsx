@@ -5,6 +5,7 @@ import { db } from '../db';
 import { Save, RotateCcw, Trash2 } from 'lucide-react';
 
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { NotificationModal } from './NotificationModal';
 
 interface DocumentInlineEditProps {
     doc: ArcaiDocument;
@@ -15,6 +16,11 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
     const [formData, setFormData] = useState<Partial<ArcaiDocument>>({});
     const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [notification, setNotification] = useState<{
+        isOpen: boolean;
+        message: string;
+        type: 'info' | 'success' | 'warning' | 'error';
+    }>({ isOpen: false, message: '', type: 'info' });
 
     useEffect(() => {
         // Initialize form data from doc
@@ -56,7 +62,7 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
             // causing the useEffect to re-run and sync everything up perfectly.
         } catch (error) {
             console.error("Failed to save document:", error);
-            alert("Failed to save changes.");
+            setNotification({ isOpen: true, message: t('save_failed'), type: 'error' });
         }
     };
 
@@ -67,7 +73,7 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
     return (
         <div className="inline-edit-form p-4 border-t border-glass-border mt-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div className="form-grid">
-                <div className="form-group">
+                <div className="form-group full-width">
                     <label>{t('doc_type')}</label>
                     <select
                         name="type"
@@ -81,6 +87,15 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                 </div>
 
                 <div className="form-group">
+                    <label>ID</label>
+                    <input
+                        value={doc.id || ''}
+                        disabled
+                        className="bg-gray-100 cursor-not-allowed opacity-70"
+                    />
+                </div>
+
+                <div className="form-group">
                     <label>{t('ref_number')}</label>
                     <input
                         name="reference_number"
@@ -89,89 +104,89 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                         className={getInputClass('reference_number')}
                     />
                 </div>
-            </div>
 
-            <div className="form-group">
-                <label>{t('doc_date')}</label>
-                <input
-                    name="document_date"
-                    value={formData.document_date || ''}
-                    onChange={handleChange}
-                    placeholder={t('date_placeholder')}
-                    className={getInputClass('document_date')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('doc_date')}</label>
+                    <input
+                        name="document_date"
+                        value={formData.document_date || ''}
+                        onChange={handleChange}
+                        placeholder={t('date_placeholder')}
+                        className={getInputClass('document_date')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label>{t('sender_label')}</label>
-                <input
-                    name="sender"
-                    value={typeof formData.sender === 'object' ? (formData.sender as any)?.organization || '' : formData.sender || ''}
-                    onChange={handleChange}
-                    className={getInputClass('sender')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('attachments_label')}</label>
+                    <input
+                        name="attachments_desc"
+                        value={formData.attachments_desc || ''}
+                        onChange={handleChange}
+                        className={getInputClass('attachments_desc')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label>{t('signatory_label')}</label>
-                <input
-                    name="sender_signatory"
-                    value={formData.sender_signatory || ''}
-                    onChange={handleChange}
-                    className={getInputClass('sender_signatory')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('sender_label')}</label>
+                    <input
+                        name="sender"
+                        value={typeof formData.sender === 'object' ? (formData.sender as any)?.organization || '' : formData.sender || ''}
+                        onChange={handleChange}
+                        className={getInputClass('sender')}
+                    />
+                </div>
 
-            <div className="form-group">
-                <label>{t('receiver_label')}</label>
-                <input
-                    name="receiver"
-                    value={typeof formData.receiver === 'object' ? (formData.receiver as any)?.organization || '' : formData.receiver || ''}
-                    onChange={handleChange}
-                    className={getInputClass('receiver')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('receiver_label')}</label>
+                    <input
+                        name="receiver"
+                        value={typeof formData.receiver === 'object' ? (formData.receiver as any)?.organization || '' : formData.receiver || ''}
+                        onChange={handleChange}
+                        className={getInputClass('receiver')}
+                    />
+                </div>
 
-            <div className="form-group full-width">
-                <label>{t('subject_label')}</label>
-                <textarea
-                    name="subject"
-                    value={formData.subject || ''}
-                    onChange={handleChange}
-                    rows={2}
-                    className={getInputClass('subject')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('cc_label')}</label>
+                    <input
+                        name="cc_distribution"
+                        value={formData.cc_distribution || ''}
+                        onChange={handleChange}
+                        className={getInputClass('cc_distribution')}
+                    />
+                </div>
 
-            <div className="form-group full-width">
-                <label>{t('attachments_label')}</label>
-                <input
-                    name="attachments_desc"
-                    value={formData.attachments_desc || ''}
-                    onChange={handleChange}
-                    className={getInputClass('attachments_desc')}
-                />
-            </div>
+                <div className="form-group">
+                    <label>{t('signatory_label')}</label>
+                    <input
+                        name="sender_signatory"
+                        value={formData.sender_signatory || ''}
+                        onChange={handleChange}
+                        className={getInputClass('sender_signatory')}
+                    />
+                </div>
 
-            <div className="form-group full-width">
-                <label>{t('cc_label')}</label>
-                <input
-                    name="cc_distribution"
-                    value={formData.cc_distribution || ''}
-                    onChange={handleChange}
-                    className={getInputClass('cc_distribution')}
-                />
-            </div>
+                <div className="form-group full-width">
+                    <label>{t('subject_label')}</label>
+                    <textarea
+                        name="subject"
+                        value={formData.subject || ''}
+                        onChange={handleChange}
+                        rows={2}
+                        className={getInputClass('subject')}
+                    />
+                </div>
 
-            <div className="form-group full-width">
-                <label>{t('summary_label')}</label>
-                <textarea
-                    name="content_summary"
-                    value={formData.content_summary || ''}
-                    onChange={handleChange}
-                    rows={4}
-                    className={getInputClass('content_summary')}
-                />
+                <div className="form-group full-width">
+                    <label>{t('summary_label')}</label>
+                    <textarea
+                        name="content_summary"
+                        value={formData.content_summary || ''}
+                        onChange={handleChange}
+                        rows={4}
+                        className={getInputClass('content_summary')}
+                    />
+                </div>
             </div>
 
             <div className="inline-edit-actions">
@@ -201,6 +216,13 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                 onConfirm={async () => {
                     if (doc.id) await db.documents.delete(doc.id);
                 }}
+            />
+
+            <NotificationModal
+                isOpen={notification.isOpen}
+                onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+                message={notification.message}
+                type={notification.type}
             />
         </div>
     );

@@ -15,6 +15,7 @@ export interface ArcaiDocument {
     content_summary: string;
     structured_data_json?: any; // For tables/flexible data
     image_data: Blob; // The actual scanner image
+    additional_images?: Blob[]; // Additional pages/images
     raw_text: string; // OCR content
 }
 
