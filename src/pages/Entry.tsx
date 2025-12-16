@@ -36,6 +36,8 @@ export const Entry: React.FC = () => {
         setNotification({ isOpen: true, message, type });
     };
 
+    const addInputRef = React.useRef<HTMLInputElement>(null);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFiles = Array.from(e.target.files);
@@ -48,6 +50,25 @@ export const Entry: React.FC = () => {
                     attachments_desc: (selectedFiles.length - 1).toString()
                 }));
             }
+        }
+    };
+
+    const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const newFiles = Array.from(e.target.files);
+            setFiles(prev => {
+                const updated = [...prev, ...newFiles];
+                // Update attachments count
+                if (updated.length > 1) {
+                    setFormData(prevFormData => ({
+                        ...prevFormData,
+                        attachments_desc: (updated.length - 1).toString()
+                    }));
+                }
+                return updated;
+            });
+            // Reset input
+            e.target.value = '';
         }
     };
 
@@ -120,25 +141,36 @@ export const Entry: React.FC = () => {
 
                     <div className="upload-area">
                         {files.length > 0 ? (
-                            <ImageCarousel
-                                files={files}
-                                onDeleteImage={(index) => {
-                                    const newFiles = files.filter((_, i) => i !== index);
-                                    setFiles(newFiles);
-                                    // Update attachments count
-                                    if (newFiles.length > 1) {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            attachments_desc: (newFiles.length - 1).toString()
-                                        }));
-                                    } else {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            attachments_desc: ''
-                                        }));
-                                    }
-                                }}
-                            />
+                            <>
+                                <ImageCarousel
+                                    files={files}
+                                    onAddImage={() => addInputRef.current?.click()}
+                                    onDeleteImage={(index) => {
+                                        const newFiles = files.filter((_, i) => i !== index);
+                                        setFiles(newFiles);
+                                        // Update attachments count
+                                        if (newFiles.length > 1) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                attachments_desc: (newFiles.length - 1).toString()
+                                            }));
+                                        } else {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                attachments_desc: ''
+                                            }));
+                                        }
+                                    }}
+                                />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleAddFiles}
+                                    hidden
+                                    ref={addInputRef}
+                                />
+                            </>
                         ) : (
                             <label className="upload-placeholder">
                                 <input type="file" accept="image/*" multiple onChange={handleFileChange} hidden />

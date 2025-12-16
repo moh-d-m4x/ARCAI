@@ -107,11 +107,16 @@ export const Dashboard: React.FC = () => {
 
         const allImages = getDocImages(viewingDoc);
 
+        // Calculate the new total count after deletion (current total - 1)
+        const newTotalCount = allImages.length - 1;
+        const newAttachmentsDesc = newTotalCount > 1 ? (newTotalCount - 1).toString() : '';
+
         // If it's the only image, delete it and set image_data to undefined
         if (allImages.length <= 1) {
             await db.documents.update(viewingDoc.id, {
                 image_data: undefined,
-                additional_images: undefined
+                additional_images: undefined,
+                attachments_desc: ''
             });
             setViewingDoc(null);
             return;
@@ -124,14 +129,16 @@ export const Dashboard: React.FC = () => {
             const newAdditional = viewingDoc.additional_images?.slice(1) || [];
             await db.documents.update(viewingDoc.id, {
                 image_data: newMain,
-                additional_images: newAdditional.length > 0 ? newAdditional : undefined
+                additional_images: newAdditional.length > 0 ? newAdditional : undefined,
+                attachments_desc: newAttachmentsDesc
             });
         } else {
             // Deleting an additional image
             const newAdditional = [...(viewingDoc.additional_images || [])];
             newAdditional.splice(imageIndex - 1, 1); // imageIndex - 1 because index 0 is main image
             await db.documents.update(viewingDoc.id, {
-                additional_images: newAdditional.length > 0 ? newAdditional : undefined
+                additional_images: newAdditional.length > 0 ? newAdditional : undefined,
+                attachments_desc: newAttachmentsDesc
             });
         }
 
@@ -152,40 +159,41 @@ export const Dashboard: React.FC = () => {
         const doc = await db.documents.get(docId);
         if (!doc) return;
 
+        let newAdditional: Blob[] = [];
+        let newImageData: Blob | undefined = doc.image_data;
+
         if (doc.image_data) {
             // Document already has images
             const currentAdditional = doc.additional_images || [];
-            let newAdditional = [...currentAdditional];
+            newAdditional = [...currentAdditional];
 
             if (typeof insertAtIndex === 'number') {
-                // Insert at specific index (viewer index maps 1:1 to additional_images index for insertion AFTER)
-                // e.g. ViewIndex 0 (Main) -> Insert at 0 of additional
-                // ViewIndex 1 (Add[0]) -> Insert at 1 of additional
                 newAdditional.splice(insertAtIndex, 0, ...files);
             } else {
-                // Append to end if no index specified (e.g. from thumbnail)
                 newAdditional = [...newAdditional, ...files];
             }
-
-            await db.documents.update(docId, {
-                additional_images: newAdditional
-            });
-
-            // If we are currently viewing this doc, update the state to reflect changes immediately
-            if (viewingDoc && viewingDoc.id === docId) {
-                const updatedDoc = await db.documents.get(docId);
-                if (updatedDoc) setViewingDoc(updatedDoc);
-            }
         } else {
-            // No existing images, set first as main, rest as additional
-            await db.documents.update(docId, {
-                image_data: files[0],
-                additional_images: files.length > 1 ? files.slice(1) : undefined
-            });
-            if (viewingDoc && viewingDoc.id === docId) {
-                const updatedDoc = await db.documents.get(docId);
-                if (updatedDoc) setViewingDoc(updatedDoc);
+            // No existing images
+            newImageData = files[0];
+            if (files.length > 1) {
+                newAdditional = files.slice(1);
             }
+        }
+
+        // Calculate attachments description (Total - 1)
+        const totalImages = (newImageData ? 1 : 0) + newAdditional.length;
+        const newAttachmentsDesc = totalImages > 1 ? (totalImages - 1).toString() : '';
+
+        await db.documents.update(docId, {
+            image_data: newImageData,
+            additional_images: newAdditional.length > 0 ? newAdditional : undefined,
+            attachments_desc: newAttachmentsDesc
+        });
+
+        // If we are currently viewing this doc, update the state to reflect changes immediately
+        if (viewingDoc && viewingDoc.id === docId) {
+            const updatedDoc = await db.documents.get(docId);
+            if (updatedDoc) setViewingDoc(updatedDoc);
         }
     };
 
