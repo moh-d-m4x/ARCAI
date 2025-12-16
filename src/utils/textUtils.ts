@@ -22,5 +22,8 @@ export function normalizeArabicText(text: string): string {
         .replace(/[\u064B-\u065F]/g, '')  // Fatha, Damma, Kasra, Sukun, Shadda, etc.
 
         // Remove Tatweel (Arabic elongation character)
-        .replace(/ـ/g, '');
+        .replace(/ـ/g, '')
+
+        // Normalize Arabic digits (٠-٩) to English digits (0-9)
+        .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
 }

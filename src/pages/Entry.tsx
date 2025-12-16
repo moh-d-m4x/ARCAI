@@ -228,7 +228,7 @@ export const Entry: React.FC = () => {
 
                         <div className="form-group">
                             <label>{t('doc_date')}</label>
-                            <input name="document_date" value={formData.document_date || ''} onChange={handleChange} placeholder={t('date_placeholder')} />
+                            <input name="document_date" value={formData.document_date || ''} onChange={handleChange} />
                         </div>
 
                         <div className="form-group">

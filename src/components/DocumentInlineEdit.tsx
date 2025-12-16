@@ -111,7 +111,7 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                         name="document_date"
                         value={formData.document_date || ''}
                         onChange={handleChange}
-                        placeholder={t('date_placeholder')}
+
                         className={getInputClass('document_date')}
                     />
                 </div>
