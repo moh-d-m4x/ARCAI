@@ -161,7 +161,6 @@ async function analyzeWithGemini(imageBlob: Blob) {
       IMPORTANT: All text fields MUST be in Arabic. Translate any English text to Arabic.
       
       Fields required:
-      - type: "وارد" or "صادر" (Incoming or Outgoing - use Arabic terms)
       - document_date: The date written on the document header (in Arabic numerals/text).
       - reference_number: رقم المرجع / Number (in Arabic if available, otherwise as-is).
       - sender: The entity sending the document (in Arabic, Simple String, not an object).
@@ -177,20 +176,28 @@ async function analyzeWithGemini(imageBlob: Blob) {
       Output ONLY valid JSON with all text in Arabic.
     `;
 
-    const result = await model.generateContent([
-        prompt,
-        {
-            inlineData: {
-                data: base64Data,
-                mimeType: imageBlob.type || "image/jpeg",
+    try {
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    data: base64Data,
+                    mimeType: imageBlob.type || "image/jpeg",
+                },
             },
-        },
-    ]);
+        ]);
 
-    const response = await result.response;
-    const text = response.text();
-    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonStr);
+        const response = await result.response;
+        const text = response.text();
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(jsonStr);
+    } catch (error: any) {
+        // Check for 503 overload error
+        if (error?.message?.includes('503') || error?.message?.includes('overloaded')) {
+            throw new Error('MODEL_OVERLOADED');
+        }
+        throw error;
+    }
 }
 
 // Analyze document using OpenAI, LLM7.io
@@ -219,7 +226,6 @@ async function analyzeWithOpenAI(imageBlob: Blob, provider: 'openai' | 'llm7') {
       IMPORTANT: All text fields MUST be in Arabic. Translate any English text to Arabic.
       
       Fields required:
-      - type: "وارد" or "صادر" (Incoming or Outgoing - use Arabic terms)
       - document_date: The date written on the document header (in Arabic numerals/text).
       - reference_number: رقم المرجع / Number (in Arabic if available, otherwise as-is).
       - sender: The entity sending the document (in Arabic, Simple String, not an object).
@@ -373,7 +379,6 @@ Analyze this image of a document (archival paper).
       If a field is missing, use null or an empty string.
       
       Fields required:
-      - type: "Incoming" or "Outgoing" (Infer from context)
       - document_date: The date written on the document header.
       - reference_number: Ref No. / Number.
       - sender: The entity sending the document (Simple String, not an object).
