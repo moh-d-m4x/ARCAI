@@ -1,24 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-interface DeleteConfirmModalProps {
+type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
+interface NotificationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => void;
+    message: string;
     title?: string;
-    message?: string;
-    confirmText?: string;
+    type?: NotificationType;
+    buttonText?: string;
 }
 
-export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
+const iconMap = {
+    info: { Icon: Info, color: 'text-blue-500', bg: 'bg-blue-500/20' },
+    success: { Icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
+    warning: { Icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-500/20' },
+    error: { Icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/20' },
+};
+
+export const NotificationModal: React.FC<NotificationModalProps> = ({
     isOpen,
     onClose,
-    onConfirm,
-    title,
     message,
-    confirmText
+    title,
+    type = 'info',
+    buttonText
 }) => {
     const { t } = useLanguage();
     const [isClosing, setIsClosing] = useState(false);
@@ -40,18 +49,18 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         setTimeout(() => {
             onClose();
             setIsVisible(false);
-        }, 300); // 300ms matches animation duration
-    };
-
-    const handleConfirm = () => {
-        onConfirm();
-        handleClose();
+        }, 300);
     };
 
     if (!isVisible && !isOpen) return null;
 
+    const { Icon, color, bg } = iconMap[type];
+
     const content = (
-        <div className={`image-viewer-overlay flex items-center justify-center ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} style={{ zIndex: 10000 }}>
+        <div
+            className={`image-viewer-overlay flex items-center justify-center ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+            style={{ zIndex: 10000 }}
+        >
             <div
                 className="absolute inset-0"
                 onClick={handleClose}
@@ -61,27 +70,22 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                 className={`delete-modal ${isClosing ? 'scale-out' : 'animate-scale-in'}`}
                 onClick={e => e.stopPropagation()}
             >
-                <div className="delete-modal-icon">
-                    <AlertTriangle size={32} />
+                <div className={`delete-modal-icon ${bg} ${color}`}>
+                    <Icon size={32} />
                 </div>
 
-                <h3 className="delete-modal-title">{title || t('delete_doc_btn')}</h3>
+                {title && <h3 className="delete-modal-title">{title}</h3>}
                 <p className="delete-modal-text">
-                    {message || t('delete_confirm')}
+                    {message}
                 </p>
 
-                <div className="delete-modal-actions">
+                <div className="delete-modal-actions" style={{ justifyContent: 'center' }}>
                     <button
-                        className="btn btn-outline border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+                        className="btn btn-primary"
                         onClick={handleClose}
+                        style={{ minWidth: '120px' }}
                     >
-                        {t('cancel') || 'Cancel'}
-                    </button>
-                    <button
-                        className="btn btn-primary bg-red-500 border-red-500 hover:bg-red-600 hover:border-red-600 text-white"
-                        onClick={handleConfirm}
-                    >
-                        {confirmText || t('delete_doc_btn')}
+                        {buttonText || t('ok') || 'OK'}
                     </button>
                 </div>
             </div>

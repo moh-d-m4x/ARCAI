@@ -12,6 +12,11 @@ export class ArcaiDatabase extends Dexie {
             settings: '++id' // We'll only store one row for settings
         });
     }
+
+    async getNextDocumentId(): Promise<number> {
+        const lastDoc = await this.documents.orderBy('id').last();
+        return (lastDoc?.id || 0) + 1;
+    }
 }
 
 export const db = new ArcaiDatabase();

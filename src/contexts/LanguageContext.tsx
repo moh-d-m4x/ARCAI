@@ -39,10 +39,31 @@ const translations: Translations = {
     'models_loading': { ar: 'جاري تحميل النماذج...', en: 'Loading models...' },
     'ai_settings_title': { ar: 'إعدادات الذكاء الاصطناعي', en: 'AI Settings' },
 
+    // Database Settings
+    'db_settings_title': { ar: 'إعدادات قاعدة البيانات', en: 'Database Settings' },
+    'export_db': { ar: 'تصدير', en: 'Export' },
+    'import_db': { ar: 'استيراد', en: 'Import' },
+    'export_success': { ar: 'تم تصدير قاعدة البيانات بنجاح', en: 'Database exported successfully' },
+    'import_success': { ar: 'تم استيراد قاعدة البيانات بنجاح', en: 'Database imported successfully' },
+    'import_error': { ar: 'فشل استيراد قاعدة البيانات', en: 'Failed to import database' },
+    'export_format': { ar: 'صيغة التصدير', en: 'Export Format' },
+    'format_json': { ar: 'JSON (ملف نسخ احتياطي)', en: 'JSON (Backup File)' },
+    'format_sqlite': { ar: 'SQLite (قاعدة بيانات)', en: 'SQLite (Database)' },
+    'format_excel': { ar: 'Excel (جدول بيانات)', en: 'Excel (Spreadsheet)' },
+    'exporting': { ar: 'جاري التصدير...', en: 'Exporting...' },
+    'importing': { ar: 'جاري الاستيراد...', en: 'Importing...' },
+    'clear_db': { ar: 'مسح الكل', en: 'Clear All' },
+    'clear_db_confirm': { ar: 'هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.', en: 'Are you sure you want to delete all data? This action cannot be undone.' },
+    'clear_db_success': { ar: 'تم مسح قاعدة البيانات بنجاح', en: 'Database cleared successfully' },
+    'import_preview_title': { ar: 'معاينة الاستيراد', en: 'Import Preview' },
+    'documents_to_import': { ar: 'المستندات للاستيراد', en: 'Documents to Import' },
+    'confirm_import': { ar: 'تأكيد الاستيراد', en: 'Confirm Import' },
+    'no_documents_found': { ar: 'لم يتم العثور على مستندات', en: 'No documents found' },
+
     // Dashboard
     'documents_title': { ar: 'المستندات', en: 'Documents' },
     'search_placeholder': { ar: 'بحث عن الموضوع، المرسل، المحتوى...', en: 'Search subject, sender, content...' },
-    'total_docs': { ar: 'المستندات الكلية', en: 'Total Documents' },
+    'total_docs': { ar: 'كل المستندات', en: 'Total Documents' },
     'incoming_docs': { ar: 'المستندات الواردة', en: 'Incoming Documents' },
     'outgoing_docs': { ar: 'المستندات الصادرة', en: 'Outgoing Documents' },
     'no_docs': { ar: 'لا توجد مستندات', en: 'No documents found' },
@@ -57,15 +78,11 @@ const translations: Translations = {
     'doc_image_title': { ar: 'صورة المذكرة', en: 'Document Image' },
     'change_image': { ar: 'تغيير الصورة', en: 'Change Image' },
     'click_to_upload': { ar: 'اضغط هنا لاختيار مستند', en: 'Click to upload document' },
-    'available_credits': { ar: 'النقاط المتاحة', en: 'Credits Available' },
-    'next_credit_in': { ar: 'النقطة التالية في', en: 'Next credit in' },
     'analyzing': { ar: 'تحليل...', en: 'Analyzing...' },
     'analyze_btn': { ar: 'تحليل', en: 'Analyze' },
     'save_doc_btn': { ar: 'حفظ المذكرة', en: 'Save Document' },
     'doc_details_title': { ar: 'تفاصيل المذكرة', en: 'Document Details' },
     'analysis_failed_error': { ar: 'فشل التحليل. تحقق من وحدة التحكم للتفاصيل. تأكد من ضبط مفتاح API.', en: 'Analysis failed. Check console for details. Ensure API Key is set.' },
-    'api_quota_exceeded': { ar: 'تم تجاوز حصة Google API اليومية. يرجى الانتظار حتى غداً أو الترقية إلى خطة مدفوعة.', en: 'Google API daily quota exceeded. Please wait until tomorrow or upgrade to a paid plan.' },
-    'rate_limit_error': { ar: 'تم الوصول إلى الحد المسموح. يرجى الانتظار حتى يتم تجديد النقاط.', en: 'Rate limit reached. Please wait for a slot to refill.' },
 
     // Form Fields
     'doc_type': { ar: 'نوع المذكرة:', en: 'Type:' },
@@ -87,6 +104,8 @@ const translations: Translations = {
     'delete_doc_btn': { ar: 'حذف', en: 'Delete' },
     'delete_confirm': { ar: 'هل أنت متأكد من حذف هذا المستند؟', en: 'Are you sure you want to delete this document?' },
     'cancel': { ar: 'إلغاء', en: 'Cancel' },
+    'ok': { ar: 'حسناً', en: 'OK' },
+    'save_failed': { ar: 'فشل حفظ المستند.', en: 'Failed to save document.' },
 };
 
 interface LanguageContextType {
