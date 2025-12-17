@@ -140,6 +140,10 @@ const translations: Translations = {
 
     // Additional Fields
     'created_date': { ar: 'تاريخ الإضافة:', en: 'Created Date:' },
+    'source': { ar: 'المصدر', en: 'Source' },
+    'source_auto': { ar: 'تلقائي (تغذية ثم سطح مسطح)', en: 'Automatic (Feeder then Flatbed)' },
+    'source_feeder': { ar: 'تغذية تلقائية (Feeder)', en: 'Auto Feeder' },
+    'source_flatbed': { ar: 'سطح مسطح (Flatbed)', en: 'Flatbed' },
 };
 
 interface LanguageContextType {

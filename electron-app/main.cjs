@@ -1,10 +1,37 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
-const { getScanners, performScan } = require('./scanner.cjs');
+const { getScanners, performScan, cleanup: cleanupScanner } = require('./scanner.cjs');
+
+// Disable security warnings in development (CSP warning cannot be avoided with Vite HMR)
+// The packaged app will have proper CSP applied
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
 
 let mainWindow;
+let isQuitting = false;
 
 const createWindow = () => {
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+    // Set Content Security Policy (only in production to avoid Vite HMR conflicts)
+    if (!isDev) {
+        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+            callback({
+                responseHeaders: {
+                    ...details.responseHeaders,
+                    'Content-Security-Policy': [
+                        "default-src 'self'; " +
+                        "script-src 'self'; " +
+                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                        "font-src 'self' https://fonts.gstatic.com; " +
+                        "img-src 'self' data: blob: file:; " +
+                        "connect-src 'self' https://generativelanguage.googleapis.com; " +
+                        "media-src 'self' data: blob: file:;"
+                    ]
+                }
+            });
+        });
+    }
+
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
@@ -22,14 +49,11 @@ const createWindow = () => {
 
     // In development, load from Vite dev server
     // In production, load the built files
-    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-
     if (isDev) {
         // Try different ports in case default is in use
         const devPort = process.env.VITE_DEV_PORT || 5173;
         mainWindow.loadURL(`http://localhost:${devPort}`);
-        // Open DevTools in development
-        mainWindow.webContents.openDevTools();
+        // DevTools can be opened manually with Ctrl+Shift+I
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
@@ -51,9 +75,9 @@ app.whenReady().then(() => {
         }
     });
 
-    ipcMain.handle('perform-scan', async (event, { scannerId, resolution, doubleSided }) => {
+    ipcMain.handle('perform-scan', async (event, { scannerId, resolution, doubleSided, source }) => {
         try {
-            const images = await performScan(scannerId, resolution, doubleSided);
+            const images = await performScan(scannerId, resolution, doubleSided, source);
             return { success: true, images };
         } catch (error) {
             console.error('Error scanning:', error);
@@ -74,4 +98,32 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+// Cleanup before quitting
+app.on('before-quit', async (event) => {
+    if (isQuitting) return;
+    isQuitting = true;
+
+    console.log('Cleaning up before quit...');
+
+    // Remove IPC handlers to release references
+    ipcMain.removeHandler('get-scanners');
+    ipcMain.removeHandler('perform-scan');
+
+    // Cleanup scanner processes
+    try {
+        await cleanupScanner();
+    } catch (e) {
+        console.error('Error during scanner cleanup:', e);
+    }
+});
+
+// Force exit after quit to ensure Node process terminates
+app.on('quit', () => {
+    console.log('App quit, forcing process exit...');
+    // Use setTimeout to allow any final cleanup, then force exit
+    setTimeout(() => {
+        process.exit(0);
+    }, 500);
 });
