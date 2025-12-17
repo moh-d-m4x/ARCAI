@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Save, Loader2, Sparkles } from 'lucide-react';
+import { Upload, Save, Loader2, Sparkles, ScanLine } from 'lucide-react';
 import { analyzeDocumentImage } from '../services/ai';
 import { db } from '../db';
 import type { ArcaiDocument } from '../types';
@@ -7,6 +7,7 @@ import type { ArcaiDocument } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageCarousel } from '../components/ImageCarousel';
 import { NotificationModal } from '../components/NotificationModal';
+import { ScannerModal } from '../components/ScannerModal';
 
 
 export const Entry: React.FC = () => {
@@ -27,6 +28,7 @@ export const Entry: React.FC = () => {
     }>({ isOpen: false, message: '', type: 'info' });
 
     const [nextId, setNextId] = useState<number | null>(null);
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     useEffect(() => {
         db.getNextDocumentId().then(setNextId);
@@ -212,6 +214,13 @@ export const Entry: React.FC = () => {
                         )}
                     </button>
 
+                    <button
+                        onClick={() => setIsScannerOpen(true)}
+                        className="btn btn-outline w-full mt-4 flex items-center justify-center gap-2"
+                    >
+                        <ScanLine size={20} /> {t('scanner_btn')}
+                    </button>
+
                     <button onClick={handleSave} className="btn btn-primary btn-large mt-4 w-full">
                         <Save size={20} /> {t('save_doc_btn')}
                     </button>
@@ -287,6 +296,24 @@ export const Entry: React.FC = () => {
                 onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
                 message={notification.message}
                 type={notification.type}
+            />
+
+            <ScannerModal
+                isOpen={isScannerOpen}
+                onClose={() => setIsScannerOpen(false)}
+                onSave={(scannedFiles) => {
+                    // Add scanned files to existing files
+                    const newFiles = [...files, ...scannedFiles];
+                    setFiles(newFiles);
+
+                    // Update attachments count
+                    if (newFiles.length > 1) {
+                        setFormData(prev => ({
+                            ...prev,
+                            attachments_desc: (newFiles.length - 1).toString()
+                        }));
+                    }
+                }}
             />
         </div>
     );
