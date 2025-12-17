@@ -4,4 +4,7 @@ echo Starting ARCAI Electron App...
 REM Ensure dev environment and matching port
 set NODE_ENV=development
 set VITE_DEV_PORT=5174
-npm run electron
+
+REM Start Vite dev server and Electron together using concurrently
+REM wait-on waits for the Vite server to be ready before launching Electron
+npx concurrently -n "Vite,Electron" -c "green,blue" "npx vite --port 5174" "npx wait-on http://localhost:5174 && npm run electron"

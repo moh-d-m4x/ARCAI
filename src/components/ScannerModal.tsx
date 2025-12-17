@@ -9,12 +9,13 @@ declare global {
         electronAPI?: {
             isElectron: boolean;
             getScanners: () => Promise<{ success: boolean; scanners: { id: string; name: string }[]; error?: string }>;
-            performScan: (options: { scannerId: string; resolution: string; doubleSided: boolean }) => Promise<{ success: boolean; images: string[]; error?: string }>;
+            performScan: (options: { scannerId: string; resolution: string; doubleSided: boolean; source: 'auto' | 'feeder' | 'flatbed' }) => Promise<{ success: boolean; images: string[]; error?: string }>;
         };
     }
 }
 
 type Resolution = 'low' | 'mid' | 'high';
+type ScanSource = 'auto' | 'feeder' | 'flatbed';
 
 interface ScannerModalProps {
     isOpen: boolean;
@@ -34,6 +35,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     // Scanner state
     const [scanners, setScanners] = useState<{ id: string; name: string }[]>([]);
     const [selectedScanner, setSelectedScanner] = useState<string>('');
+    const [scanSource, setScanSource] = useState<ScanSource>('auto');
     const [resolution, setResolution] = useState<Resolution>('mid');
     const [doubleSided, setDoubleSided] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
@@ -42,7 +44,20 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
-    // Load scanners when modal opens
+    const SCANNER_STORAGE_KEY = 'lastUsedScanner';
+
+    // Save scanner to localStorage when selected
+    const handleScannerSelect = (scannerId: string) => {
+        setSelectedScanner(scannerId);
+        localStorage.setItem(SCANNER_STORAGE_KEY, scannerId);
+        // Also save the scanner name for instant display
+        const scanner = scanners.find(s => s.id === scannerId);
+        if (scanner) {
+            localStorage.setItem(SCANNER_STORAGE_KEY + '_name', scanner.name);
+        }
+    };
+
+    // Load scanners from system
     const loadScanners = useCallback(async () => {
         if (!window.electronAPI) {
             setError(t('scanner_error_electron_required'));
@@ -56,8 +71,17 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             const result = await window.electronAPI.getScanners();
             if (result.success) {
                 setScanners(result.scanners);
-                if (result.scanners.length > 0) {
+
+                // Try to restore last used scanner
+                const savedScannerId = localStorage.getItem(SCANNER_STORAGE_KEY);
+                const savedScannerExists = savedScannerId && result.scanners.some(s => s.id === savedScannerId);
+
+                if (savedScannerExists) {
+                    setSelectedScanner(savedScannerId);
+                } else if (result.scanners.length > 0) {
+                    // Saved scanner not found, select first available
                     setSelectedScanner(result.scanners[0].id);
+                    localStorage.setItem(SCANNER_STORAGE_KEY, result.scanners[0].id);
                 }
             } else {
                 setError(result.error || t('scan_error'));
@@ -70,17 +94,85 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         }
     }, [t]);
 
+    // Smart initialization: use cached scanner immediately, verify in background
+    const initializeScanners = useCallback(async () => {
+        if (!window.electronAPI) {
+            setError(t('scanner_error_electron_required'));
+            return;
+        }
+
+        const savedScannerId = localStorage.getItem(SCANNER_STORAGE_KEY);
+        const savedScannerName = localStorage.getItem(SCANNER_STORAGE_KEY + '_name');
+
+        // If we have a cached scanner, use it immediately without showing loading
+        if (savedScannerId && savedScannerName) {
+            setScanners([{ id: savedScannerId, name: savedScannerName }]);
+            setSelectedScanner(savedScannerId);
+
+            // Verify in background (silently) - don't show loading spinner
+            try {
+                const result = await window.electronAPI.getScanners();
+                if (result.success) {
+                    const foundScanner = result.scanners.find(s => s.id === savedScannerId);
+
+                    if (foundScanner) {
+                        // Scanner still connected - update list and ensure correct name is cached
+                        setScanners(result.scanners);
+                        // Update cached name in case it was wrong or missing
+                        localStorage.setItem(SCANNER_STORAGE_KEY + '_name', foundScanner.name);
+                    } else {
+                        // Saved scanner disconnected - update list and select new one
+                        setScanners(result.scanners);
+                        if (result.scanners.length > 0) {
+                            setSelectedScanner(result.scanners[0].id);
+                            localStorage.setItem(SCANNER_STORAGE_KEY, result.scanners[0].id);
+                            localStorage.setItem(SCANNER_STORAGE_KEY + '_name', result.scanners[0].name);
+                        } else {
+                            setSelectedScanner('');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error verifying scanner:', err);
+                // Keep using cached scanner on error
+            }
+        } else {
+            // No cached scanner - do full refresh with loading indicator
+            setIsLoadingScanners(true);
+            setError(null);
+
+            try {
+                const result = await window.electronAPI.getScanners();
+                if (result.success) {
+                    setScanners(result.scanners);
+                    if (result.scanners.length > 0) {
+                        setSelectedScanner(result.scanners[0].id);
+                        localStorage.setItem(SCANNER_STORAGE_KEY, result.scanners[0].id);
+                        localStorage.setItem(SCANNER_STORAGE_KEY + '_name', result.scanners[0].name);
+                    }
+                } else {
+                    setError(result.error || t('scan_error'));
+                }
+            } catch (err) {
+                console.error('Error loading scanners:', err);
+                setError(t('scan_error'));
+            } finally {
+                setIsLoadingScanners(false);
+            }
+        }
+    }, [t]);
+
     useEffect(() => {
         if (isOpen) {
             setIsVisible(true);
             setIsClosing(false);
             document.body.style.overflow = 'hidden';
-            loadScanners();
+            initializeScanners();
         } else {
             document.body.style.overflow = 'unset';
             setIsVisible(false);
         }
-    }, [isOpen, loadScanners]);
+    }, [isOpen, initializeScanners]);
 
     const handleClose = () => {
         setIsClosing(true);
@@ -104,7 +196,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             const result = await window.electronAPI.performScan({
                 scannerId: selectedScanner,
                 resolution,
-                doubleSided
+                doubleSided,
+                source: scanSource
             });
 
             if (result.success && result.images.length > 0) {
@@ -183,7 +276,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="scanner-modal-content">
+                <div className="scanner-modal-content" style={{ height: '470px' }}>
                     {/* Left: Scanner Options */}
                     <div className="scanner-options">
                         {/* Scanner Selection */}
@@ -197,7 +290,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                                 ) : (
                                     <select
                                         value={selectedScanner}
-                                        onChange={(e) => setSelectedScanner(e.target.value)}
+                                        onChange={(e) => handleScannerSelect(e.target.value)}
                                         disabled={isScanning || scanners.length === 0}
                                         className="scanner-select"
                                     >
@@ -215,12 +308,29 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
                                 <button
                                     className="btn-icon-only"
-                                    onClick={loadScanners}
+                                    onClick={() => loadScanners()}
                                     disabled={isScanning || isLoadingScanners}
                                     title={t('refresh_scanners')}
                                 >
                                     <RotateCw size={18} className={isLoadingScanners ? 'animate-spin' : ''} />
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Source Selection */}
+                        <div className="scanner-option-group">
+                            <label>{t('source')}</label>
+                            <div className="resolution-buttons">
+                                <select
+                                    value={scanSource}
+                                    onChange={(e) => setScanSource(e.target.value as ScanSource)}
+                                    disabled={isScanning}
+                                    className="scanner-select"
+                                >
+                                    <option value="auto">{t('source_auto')}</option>
+                                    <option value="feeder">{t('source_feeder')}</option>
+                                    <option value="flatbed">{t('source_flatbed')}</option>
+                                </select>
                             </div>
                         </div>
 
@@ -259,7 +369,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                                     type="checkbox"
                                     checked={doubleSided}
                                     onChange={(e) => setDoubleSided(e.target.checked)}
-                                    disabled={isScanning}
+                                    disabled={isScanning || scanSource === 'flatbed'}
                                 />
                                 <span>{t('double_sided')}</span>
                             </label>
@@ -312,7 +422,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                     </div>
 
                     {/* Right: Preview Area */}
-                    <div className="scanner-preview">
+                    <div className="scanner-preview" style={{ minHeight: '420px', display: 'flex', flexDirection: 'column' }}>
                         <div className="scanner-preview-header">
                             <h4>{t('scanned_images')} ({scannedImages.length})</h4>
                             {scannedImages.length > 0 && (
@@ -325,7 +435,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                             )}
                         </div>
 
-                        <div className="scanner-preview-area">
+                        <div className="scanner-preview-area" style={{ flex: 1, minHeight: '500px' }}>
                             {scannedImages.length > 0 ? (
                                 <div className="scanner-carousel">
                                     <img

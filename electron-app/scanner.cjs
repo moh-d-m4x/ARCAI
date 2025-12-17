@@ -8,6 +8,10 @@ const { app } = require('electron');
 // We check commonly expected locations
 const NAPS2_PATH = path.join(__dirname, 'naps2_v7', 'App', 'NAPS2.Console.exe');
 
+// Track active child processes and intervals for cleanup
+const activeProcesses = new Set();
+const activeIntervals = new Set();
+
 async function checkNaps2() {
     return fs.existsSync(NAPS2_PATH);
 }
@@ -19,9 +23,39 @@ function execNaps2(args) {
         const command = `"${NAPS2_PATH}" ${args}`;
         console.log('Running NAPS2:', command);
 
-        exec(command, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        const childProcess = exec(command, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+            activeProcesses.delete(childProcess);
             resolve({ error, stdout, stderr });
         });
+
+        // Track the process
+        activeProcesses.add(childProcess);
+
+        // Clean up on process exit
+        childProcess.on('exit', () => {
+            activeProcesses.delete(childProcess);
+        });
+    });
+}
+
+// Helper to get connected physical devices via PowerShell
+function getConnectedDevices() {
+    return new Promise((resolve) => {
+        // Get-PnpDevice -Class Image -Status OK returns physically connected imaging devices
+        // Use -ErrorAction SilentlyContinue to suppress errors when no devices found
+        const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Get-PnpDevice -Class Image -Status OK -ErrorAction Stop | Select-Object -ExpandProperty FriendlyName } catch { }"`;
+        const childProcess = exec(cmd, { encoding: 'utf8', maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+            activeProcesses.delete(childProcess);
+            // Parse stdout into array of names (may be empty if no devices)
+            const devices = stdout.split(/[\r\n]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            console.log("Connected PnP Devices:", devices);
+            resolve(devices);
+        });
+
+        activeProcesses.add(childProcess);
+        childProcess.on('exit', () => activeProcesses.delete(childProcess));
     });
 }
 
@@ -31,6 +65,40 @@ async function getScanners() {
         return [];
     }
 
+    // Get active physical devices to filter out "ghost" drivers
+    const connectedDevices = await getConnectedDevices();
+
+    // Helper filter function
+    const isConnected = (naps2Name) => {
+        // If check failed (null), show all as fallback
+        if (!connectedDevices) return true;
+        // If no devices are connected, don't show any ghost drivers
+        if (connectedDevices.length === 0) return false;
+
+        const nameLower = naps2Name.toLowerCase();
+
+        // 1. Strict containment check (for specific models)
+        // Check if the specific model details match
+        const strictMatch = connectedDevices.some(connected => {
+            const connectedLower = connected.toLowerCase();
+            return nameLower.includes(connectedLower) || connectedLower.includes(nameLower);
+        });
+        if (strictMatch) return true;
+
+        // 2. Generic WIA fallback
+        // Only trigger this if the NAPS2 name is generic (e.g. "Epson Scanner")
+        // AND doesn't contain specific model numbers that differ.
+        // We know standard generic names: "epson scanner", "epson scan", "scanner", "wia-epson"
+        if (nameLower.includes('scanner') && !nameLower.match(/\d/)) {
+            // If name has no digits (no specific model number), assume it's generic WIA
+            // Check if Manufacturer matches
+            const manufacturer = nameLower.split(' ')[0]; // e.g. "epson"
+            return connectedDevices.some(d => d.toLowerCase().includes(manufacturer));
+        }
+
+        return false;
+    };
+
     const scanners = [];
 
     // List TWAIN devices (Preferred)
@@ -39,10 +107,11 @@ async function getScanners() {
         if (!twainResult.error) {
             twainResult.stdout.split('\n').forEach(line => {
                 const name = line.trim();
-                if (name && !name.startsWith('Error')) {
+                // Filter: Name must match a connected device
+                if (name && !name.startsWith('Error') && isConnected(name)) {
                     scanners.push({
                         id: `twain:${name}`,
-                        name: `${name} (TWAIN - RECOMMENDED for Feeder)`
+                        name: name
                     });
                 }
             });
@@ -57,13 +126,34 @@ async function getScanners() {
         if (!wiaResult.error) {
             wiaResult.stdout.split('\n').forEach(line => {
                 const name = line.trim();
-                if (name && !name.startsWith('Error')) {
-                    // Check if already added via TWAIN (simple generic check)
-                    // Just add it but mark it
-                    scanners.push({
-                        id: `wia:${name}`,
-                        name: `${name} (WIA - Flatbed/Backup)`
+                // Filter: Name must match a connected device
+                if (name && !name.startsWith('Error') && isConnected(name)) {
+                    // Check if already added via TWAIN - skip if duplicate
+                    // Also skip generic names like "EPSON Scanner" if a specific model already exists
+                    const baseNameLower = name.toLowerCase();
+                    const manufacturer = baseNameLower.split(' ')[0]; // e.g., "epson"
+
+                    // Check for exact match or same manufacturer with more specific model
+                    const alreadyExists = scanners.some(s => {
+                        const existingLower = s.name.toLowerCase();
+                        // Exact match
+                        if (existingLower === baseNameLower) return true;
+                        // Same manufacturer - prefer the one with model number (more specific)
+                        if (existingLower.startsWith(manufacturer)) {
+                            // If existing has model details and current is generic, skip current
+                            const existingHasModel = /\w+-?\w*\d+/.test(existingLower);
+                            const currentIsGeneric = baseNameLower === `${manufacturer} scanner`;
+                            if (existingHasModel && currentIsGeneric) return true;
+                        }
+                        return false;
                     });
+
+                    if (!alreadyExists) {
+                        scanners.push({
+                            id: `wia:${name}`,
+                            name: name
+                        });
+                    }
                 }
             });
         }
@@ -74,7 +164,46 @@ async function getScanners() {
     return scanners;
 }
 
-async function performScan(scannerId, resolution = 'mid', doubleSided = false) {
+// Helper to kill stuck processes
+function cleanupProcesses() {
+    return new Promise((resolve) => {
+        // Kill NAPS2 and known Epson driver processes that might be hanging
+        const processes = ['NAPS2.Console.exe', 'Epson Scan 2.exe', 'escndv.exe', 'escndv_t.exe'];
+        const cmd = `taskkill /F /T ${processes.map(p => `/IM "${p}"`).join(' ')}`;
+
+        console.log('Cleaning up processes:', cmd);
+        // Ignore errors (e.g. if process not found)
+        exec(cmd, (err) => {
+            resolve();
+        });
+    });
+}
+
+// Helper to auto-dismiss "Epson Scan 2" error popups (Empty Feeder)
+function monitorPopup(active) {
+    if (!active) return null;
+
+    const interval = setInterval(() => {
+        // PowerShell command to find "Epson Scan 2" window and send ENTER immediately
+        // Removed Sleep delay for faster dismissal
+        const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$wshell = New-Object -ComObject WScript.Shell; if ($wshell.AppActivate('Epson Scan 2')) { $wshell.SendKeys('{ENTER}') }"`;
+
+        const childProcess = exec(cmd, (err) => {
+            activeProcesses.delete(childProcess);
+        });
+        activeProcesses.add(childProcess);
+        childProcess.on('exit', () => activeProcesses.delete(childProcess));
+    }, 50); // Check every 50ms for instant dismissal
+
+    // Track the interval
+    activeIntervals.add(interval);
+    return interval;
+}
+
+async function performScan(scannerId, resolution = 'mid', doubleSided = false, source = 'auto') {
+    // Kill any stuck previous sessions first
+    await cleanupProcesses();
+
     if (!await checkNaps2()) {
         throw new Error('Scanning engine (NAPS2) not found.');
     }
@@ -87,89 +216,128 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false) {
         throw new Error('Invalid scanner ID');
     }
 
-    const tempDir = os.tmpdir();
-    // Use NAPS2 placeholder $(nnnn) for numbering
-    const filePrefix = `scan_${Date.now()}`;
-    const outputPattern = path.join(tempDir, `${filePrefix}_$(nnnn).jpg`);
-
     // Map resolution
     let dpi = 200;
     if (resolution === 'high') dpi = 300;
     if (resolution === 'low') dpi = 150;
 
-    // Map source
-    // NAPS2 sources: "glass", "feeder", "duplex"
-    let source = 'glass';
-    // Logic: If user specifically clicked button? 
-    // Wait, performScan is called by UI.
-    // The UI calls performScan.
-    // In previous logic: We tried Feeder first, fallback to glass?
-    // Actually, user wants ADF.
-    // The current UI might not have a "Source" selector explicitly passed to performScan?
-    // Looking at previous code: `useFeeder` was determined by checking paper status.
-    // NAPS2 does not expose paper status check easily via CLI?
-    // Can we just try "feeder" and if it fails, try "glass"?
-    // OR: NAPS2 --source feeder might fail if empty?
-    // The user's request was specifically "detecting the upper feeder".
-    // So I should default to 'feeder' or 'duplex'.
-    // If I use 'feeder', it forces ADF.
+    // Helper function to execute a single scan attempt
+    const executeScanSession = async (naps2Source, enableMonitor = false) => {
+        const tempDir = os.tmpdir();
+        const filePrefix = `scan_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        const outputPattern = path.join(tempDir, `${filePrefix}_$(nnnn).jpg`);
 
-    if (doubleSided) {
-        source = 'duplex';
-    } else {
-        source = 'feeder';
-    }
+        const args = ` -o "${outputPattern}" --source ${naps2Source} --driver ${driver} --device "${deviceName}" --dpi ${dpi} --jpegquality 80 --force`;
+        console.log(`Starting scan [Source=${naps2Source}]:`, args);
 
-    // Command construction
-    // --noprofile is required to use raw args
-    // --force to overwrite
-    const args = ` -o "${outputPattern}" --source ${source} --driver ${driver} --device "${deviceName}" --dpi ${dpi} --jpegquality 80 --force`;
+        // Start Popup Monitor if requested (e.g. for Auto-Feeder attempt)
+        let monitorInterval = null;
+        if (enableMonitor) {
+            console.log('Enabling popup monitor for ' + naps2Source);
+            monitorInterval = monitorPopup(true);
+        }
 
-    console.log('Starting scan:', args);
-    const result = await execNaps2(args);
-
-    if (result.error && result.stderr) {
-        console.error("Scan Error:", result.stderr);
-        // Fallback: If 'feeder' empty/error, maybe try 'glass' if it was a generic error?
-        // But user wants feeder.
-        // NAPS2 might return error if empty.
-        // "No documents found in feeder"
-        throw new Error('Scan failed: ' + result.stderr + (result.stdout || ''));
-    }
-
-    // Find generated files
-    // They will match scan_TIMESTAMP_1.jpg, ..._2.jpg, etc.
-    const files = fs.readdirSync(tempDir)
-        .filter(f => f.startsWith(filePrefix) && f.endsWith('.jpg'))
-        .map(f => path.join(tempDir, f))
-        .sort(); // Ensure order by filename
-
-    if (files.length === 0) {
-        // Log the NAPS2 output to understand why it failed silently
-        console.error("NAPS2 Output:", result.stdout);
-        console.error("NAPS2 Stderr:", result.stderr);
-        throw new Error(`No images scanned. NAPS2 Output: ${result.stdout} ${result.stderr}`);
-    }
-
-    // Read and convert to base64
-    const images = [];
-    for (const file of files) {
         try {
-            const data = fs.readFileSync(file);
-            const base64 = `data:image/jpeg;base64,${data.toString('base64')}`;
-            images.push(base64);
+            const result = await execNaps2(args);
 
-            // Cleanup
-            fs.unlinkSync(file);
-        } catch (e) {
-            console.error('Error processing scan file:', file, e);
+            // Check for generated files
+            const files = fs.readdirSync(tempDir)
+                .filter(f => f.startsWith(filePrefix) && f.endsWith('.jpg'))
+                .map(f => path.join(tempDir, f))
+                .sort();
+
+            if (files.length === 0) {
+                // If no files, treat as failure
+                const errorMsg = result.stderr || result.stdout || "No images scanned";
+                throw new Error(errorMsg);
+            }
+
+            // Read images
+            const images = [];
+            for (const file of files) {
+                try {
+                    const data = fs.readFileSync(file);
+                    const base64 = `data:image/jpeg;base64,${data.toString('base64')}`;
+                    images.push(base64);
+                    fs.unlinkSync(file); // Cleanup
+                } catch (e) {
+                    console.error('Error reading scan file:', file, e);
+                }
+            }
+            return images;
+        } finally {
+            // Stop monitor
+            if (monitorInterval) {
+                clearInterval(monitorInterval);
+                activeIntervals.delete(monitorInterval);
+            }
+        }
+    };
+    // Strategy Determination
+    let primarySource = 'glass';
+    let fallbackSource = null;
+    let monitorPrimary = false;
+
+    if (source === 'auto') {
+        // Auto: Try Feeder/Duplex first, then Glass
+        primarySource = doubleSided ? 'duplex' : 'feeder';
+        fallbackSource = 'glass';
+        monitorPrimary = true; // Enable popup killer for the initial feeder attempt
+    } else if (source === 'feeder') {
+        primarySource = doubleSided ? 'duplex' : 'feeder';
+    } else {
+        // Flatbed
+        primarySource = 'glass';
+    }
+
+    // Execution
+    try {
+        console.log(`Attempting scan from ${primarySource}...`);
+        return await executeScanSession(primarySource, monitorPrimary);
+    } catch (primaryError) {
+        if (fallbackSource) {
+            console.warn(`Primary source ${primarySource} failed (${primaryError.message}). Retrying with ${fallbackSource}...`);
+            // Cleanup processes again before retry, just in case
+            await cleanupProcesses();
+            try {
+                return await executeScanSession(fallbackSource, false);
+            } catch (fallbackError) {
+                // If fallback also fails, throw combined error or fallback error
+                throw new Error(`Auto-scan failed. Feeder: ${primaryError.message}. Flatbed: ${fallbackError.message}`);
+            }
+        } else {
+            // No fallback, rethrow
+            throw primaryError;
         }
     }
+}
 
-    return images;
+// Cleanup function to kill all active processes and intervals
+async function cleanup() {
+    console.log(`Cleaning up ${activeProcesses.size} processes and ${activeIntervals.size} intervals...`);
+
+    // Clear all intervals
+    for (const interval of activeIntervals) {
+        clearInterval(interval);
+    }
+    activeIntervals.clear();
+
+    // Kill all active child processes
+    for (const proc of activeProcesses) {
+        try {
+            proc.kill('SIGTERM');
+        } catch (e) {
+            // Process may already be dead
+        }
+    }
+    activeProcesses.clear();
+
+    // Also run the general cleanup
+    await cleanupProcesses();
 }
 
 module.exports = {
     getScanners,
-    performScan
+    performScan,
+    cleanup
 };
