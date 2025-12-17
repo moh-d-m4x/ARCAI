@@ -115,6 +115,29 @@ const translations: Translations = {
     'export_as_png': { ar: 'تصدير كـ PNG', en: 'Export as PNG' },
     'export_as_pdf': { ar: 'تصدير كـ PDF', en: 'Export as PDF' },
 
+    // Scanner
+    'scanner_btn': { ar: 'مسح ضوئي', en: 'Scan' },
+    'scanner_title': { ar: 'مسح مستند', en: 'Scan Document' },
+    'select_scanner': { ar: 'اختر الماسح الضوئي', en: 'Select Scanner' },
+    'refresh_scanners': { ar: 'تحديث قائمة الماسحات', en: 'Refresh Scanners' },
+    'no_scanners': { ar: 'لم يتم العثور على ماسح ضوئي', en: 'No scanners found' },
+    'resolution': { ar: 'الدقة', en: 'Resolution' },
+    'resolution_low': { ar: 'منخفضة (150 DPI)', en: 'Low (150 DPI)' },
+    'resolution_mid': { ar: 'متوسطة (300 DPI)', en: 'Medium (300 DPI)' },
+    'resolution_high': { ar: 'عالية (600 DPI)', en: 'High (600 DPI)' },
+    'double_sided': { ar: 'مسح وجهي الصفحة', en: 'Scan both sides' },
+    'start_scan': { ar: 'بدء المسح', en: 'Start Scan' },
+    'scanning': { ar: 'جاري المسح...', en: 'Scanning...' },
+    'save_scanned': { ar: 'حفظ الصور', en: 'Save Images' },
+    'scan_error': { ar: 'فشل المسح الضوئي', en: 'Scan failed' },
+    'scanned_images': { ar: 'الصور الممسوحة', en: 'Scanned Images' },
+    'no_scanned_images': { ar: 'لم يتم مسح أي صور بعد', en: 'No images scanned yet' },
+    'clear_scanned': { ar: 'مسح الكل', en: 'Clear All' },
+    'scanner_error_electron_required': {
+        ar: 'تتطلب وظيفة الماسح الضوئي تطبيق سطح المكتب',
+        en: 'Scanner functionality requires Desktop Application'
+    },
+
     // Additional Fields
     'created_date': { ar: 'تاريخ الإضافة:', en: 'Created Date:' },
 };
