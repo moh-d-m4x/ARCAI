@@ -9,13 +9,15 @@ declare global {
         electronAPI?: {
             isElectron: boolean;
             getScanners: () => Promise<{ success: boolean; scanners: { id: string; name: string }[]; error?: string }>;
-            performScan: (options: { scannerId: string; resolution: string; doubleSided: boolean; source: 'auto' | 'feeder' | 'flatbed' }) => Promise<{ success: boolean; images: string[]; error?: string }>;
+            performScan: (options: { scannerId: string; resolution: string; doubleSided: boolean; source: 'auto' | 'feeder' | 'flatbed'; pageSize: 'auto' | 'a4' | 'a5' }) => Promise<{ success: boolean; images: string[]; error?: string }>;
+            cancelScan: () => Promise<{ success: boolean; error?: string }>;
         };
     }
 }
 
 type Resolution = 'low' | 'mid' | 'high';
 type ScanSource = 'auto' | 'feeder' | 'flatbed';
+type PageSize = 'a4' | 'a5';
 
 interface ScannerModalProps {
     isOpen: boolean;
@@ -37,6 +39,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     const [selectedScanner, setSelectedScanner] = useState<string>('');
     const [scanSource, setScanSource] = useState<ScanSource>('auto');
     const [resolution, setResolution] = useState<Resolution>('mid');
+    const [pageSize, setPageSize] = useState<PageSize>('a4');
     const [doubleSided, setDoubleSided] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
     const [isLoadingScanners, setIsLoadingScanners] = useState(false);
@@ -104,38 +107,17 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
         const savedScannerId = localStorage.getItem(SCANNER_STORAGE_KEY);
         const savedScannerName = localStorage.getItem(SCANNER_STORAGE_KEY + '_name');
 
-        // If we have a cached scanner, use it immediately without showing loading
+        // If we have a cached scanner, use it immediately causing NO logs
         if (savedScannerId && savedScannerName) {
             setScanners([{ id: savedScannerId, name: savedScannerName }]);
             setSelectedScanner(savedScannerId);
+            setIsLoadingScanners(false);
 
-            // Verify in background (silently) - don't show loading spinner
-            try {
-                const result = await window.electronAPI.getScanners();
-                if (result.success) {
-                    const foundScanner = result.scanners.find(s => s.id === savedScannerId);
-
-                    if (foundScanner) {
-                        // Scanner still connected - update list and ensure correct name is cached
-                        setScanners(result.scanners);
-                        // Update cached name in case it was wrong or missing
-                        localStorage.setItem(SCANNER_STORAGE_KEY + '_name', foundScanner.name);
-                    } else {
-                        // Saved scanner disconnected - update list and select new one
-                        setScanners(result.scanners);
-                        if (result.scanners.length > 0) {
-                            setSelectedScanner(result.scanners[0].id);
-                            localStorage.setItem(SCANNER_STORAGE_KEY, result.scanners[0].id);
-                            localStorage.setItem(SCANNER_STORAGE_KEY + '_name', result.scanners[0].name);
-                        } else {
-                            setSelectedScanner('');
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Error verifying scanner:', err);
-                // Keep using cached scanner on error
-            }
+            // We TRUST the cached scanner. We do NOT verify in background.
+            // This prevents the "Listing TWAIN..." logs every time the modal opens.
+            // If the user needs to find new scanners or if the cached one fails,
+            // they can use the "Refresh" button or it will fail on scan.
+            return;
         } else {
             // No cached scanner - do full refresh with loading indicator
             setIsLoadingScanners(true);
@@ -161,20 +143,32 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             }
         }
     }, [t]);
+    // Note: We keep [t] dependency because clean React rules, but usage in useEffect will be guarded.
+
+    const initializedRef = React.useRef(false);
 
     useEffect(() => {
         if (isOpen) {
             setIsVisible(true);
             setIsClosing(false);
             document.body.style.overflow = 'hidden';
-            initializeScanners();
+
+            // Only initialize if not already initialized for this open session
+            if (!initializedRef.current) {
+                initializeScanners();
+                initializedRef.current = true;
+            }
         } else {
             document.body.style.overflow = 'unset';
             setIsVisible(false);
+            initializedRef.current = false;
         }
     }, [isOpen, initializeScanners]);
 
     const handleClose = () => {
+        if (window.electronAPI && isScanning) {
+            window.electronAPI.cancelScan().catch(console.error);
+        }
         setIsClosing(true);
         setTimeout(() => {
             onClose();
@@ -197,7 +191,8 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                 scannerId: selectedScanner,
                 resolution,
                 doubleSided,
-                source: scanSource
+                source: scanSource,
+                pageSize
             });
 
             if (result.success && result.images.length > 0) {
@@ -217,17 +212,35 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     const handleSave = async () => {
         if (scannedImages.length === 0) return;
 
-        // Convert base64 images to File objects
-        const files: File[] = await Promise.all(
-            scannedImages.map(async (base64, index) => {
-                const response = await fetch(base64);
-                const blob = await response.blob();
-                return new File([blob], `scan_${Date.now()}_${index}.jpg`, { type: 'image/jpeg' });
-            })
-        );
+        try {
+            console.log('Saving', scannedImages.length, 'images...');
 
-        onSave(files);
-        handleClose();
+            // Convert base64 images to File objects (works in file:// protocol)
+            const files: File[] = scannedImages.map((base64, index) => {
+                // Extract the base64 data from the data URL
+                const parts = base64.split(',');
+                const mimeMatch = parts[0].match(/:(.*?);/);
+                const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                const binaryString = atob(parts[1]);
+
+                // Convert to byte array
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                const blob = new Blob([bytes], { type: mime });
+                console.log(`Image ${index + 1} blob size: ${blob.size}`);
+                return new File([blob], `scan_${Date.now()}_${index}.jpg`, { type: 'image/jpeg' });
+            });
+
+            console.log('Calling onSave with', files.length, 'files');
+            onSave(files);
+            handleClose();
+        } catch (err) {
+            console.error('Error saving scanned images:', err);
+            setError('Failed to save images: ' + (err instanceof Error ? err.message : String(err)));
+        }
     };
 
     const handleClearImages = () => {
@@ -359,6 +372,22 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                                 >
                                     {t('resolution_high')}
                                 </button>
+                            </div>
+                        </div>
+
+                        {/* Page Size */}
+                        <div className="scanner-option-group">
+                            <label>{t('page_size')}</label>
+                            <div className="resolution-buttons">
+                                <select
+                                    value={pageSize}
+                                    onChange={(e) => setPageSize(e.target.value as PageSize)}
+                                    disabled={isScanning}
+                                    className="scanner-select"
+                                >
+                                    <option value="a4">A4</option>
+                                    <option value="a5">A5</option>
+                                </select>
                             </div>
                         </div>
 

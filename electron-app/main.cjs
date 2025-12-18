@@ -10,7 +10,12 @@ let mainWindow;
 let isQuitting = false;
 
 const createWindow = () => {
-    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    // Determine if running in dev mode:
+    // - Explicitly set via NODE_ENV=production means NOT dev
+    // - Otherwise, check if packaged
+    const isDev = process.env.NODE_ENV !== 'production' && !app.isPackaged;
+    console.log(`Running in ${isDev ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
+
 
     // Set Content Security Policy (only in production to avoid Vite HMR conflicts)
     if (!isDev) {
@@ -75,13 +80,23 @@ app.whenReady().then(() => {
         }
     });
 
-    ipcMain.handle('perform-scan', async (event, { scannerId, resolution, doubleSided, source }) => {
+    ipcMain.handle('perform-scan', async (event, { scannerId, resolution, doubleSided, source, pageSize }) => {
         try {
-            const images = await performScan(scannerId, resolution, doubleSided, source);
+            const images = await performScan(scannerId, resolution, doubleSided, source, pageSize);
             return { success: true, images };
         } catch (error) {
             console.error('Error scanning:', error);
             return { success: false, error: error.message, images: [] };
+        }
+    });
+
+    ipcMain.handle('cancel-scan', async () => {
+        try {
+            await cleanupScanner();
+            return { success: true };
+        } catch (error) {
+            console.error('Error cancelling scan:', error);
+            return { success: false, error: error.message };
         }
     });
 

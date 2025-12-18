@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../db';
 import { useLiveQuery } from 'dexie-react-hooks';
 
@@ -144,6 +144,10 @@ const translations: Translations = {
     'source_auto': { ar: 'تلقائي (تغذية ثم سطح مسطح)', en: 'Automatic (Feeder then Flatbed)' },
     'source_feeder': { ar: 'تغذية تلقائية (Feeder)', en: 'Auto Feeder' },
     'source_flatbed': { ar: 'سطح مسطح (Flatbed)', en: 'Flatbed' },
+
+    // Page Size
+    'page_size': { ar: 'حجم الورق', en: 'Page Size' },
+    'page_size_auto': { ar: 'تلقائي', en: 'Auto Detect' },
 };
 
 interface LanguageContextType {
@@ -178,20 +182,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         document.documentElement.lang = language;
     }, [language]);
 
-    const t = (key: string) => {
+    const t = useCallback((key: string) => {
         return translations[key]?.[language] || key;
-    };
+    }, [language]);
 
     const dir = language === 'ar' ? 'rtl' : 'ltr';
 
-    const value = {
+    const value = useMemo(() => ({
         language,
-        setLanguage: (lang: Language) => {
-            setLanguage(lang);
-        },
+        setLanguage,
         t,
         dir: dir as 'rtl' | 'ltr'
-    };
+    }), [language, t]);
 
     return (
         <LanguageContext.Provider value={value}>
