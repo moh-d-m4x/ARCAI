@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -8,33 +8,67 @@ const { app } = require('electron');
 // We check commonly expected locations
 const NAPS2_PATH = path.join(__dirname, 'naps2_v7', 'App', 'NAPS2.Console.exe');
 
-// Track active child processes and intervals for cleanup
+// Track active child processes and timeouts for cleanup
 const activeProcesses = new Set();
-const activeIntervals = new Set();
+const activeTimeouts = new Set();
+
+// Global flag to signal cancellation
+let isScanCancelled = false;
+let hasLoggedDevices = false;
 
 async function checkNaps2() {
     return fs.existsSync(NAPS2_PATH);
 }
 
-function execNaps2(args) {
+function execNaps2(argsArray, silent = false) {
     return new Promise((resolve, reject) => {
-        // NAPS2 Console arguments
-        // Ensure we quote the path
-        const command = `"${NAPS2_PATH}" ${args}`;
-        console.log('Running NAPS2:', command);
+        // Double check cancellation before starting
+        if (isScanCancelled) {
+            reject(new Error('Scan cancelled by user'));
+            return;
+        }
 
-        const childProcess = exec(command, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        // Only log spawn if it's not a silenced list operation
+        const isListOp = argsArray.includes('--listdevices');
+        if (!isListOp || !hasLoggedDevices) {
+            console.log('DEBUG: Spawning NAPS2 with args:', argsArray);
+        }
+
+        // Use stdio: 'ignore' for actual scans to prevent memory buffering
+        const spawnOptions = silent ? { stdio: 'ignore' } : {};
+        const childProcess = spawn(NAPS2_PATH, argsArray, spawnOptions);
+
+        let stdout = '';
+        let stderr = '';
+
+        // Only attach data handlers if not in silent mode
+        if (!silent) {
+            childProcess.stdout.on('data', (data) => {
+                if (stdout.length < 100000) stdout += data.toString();
+            });
+
+            childProcess.stderr.on('data', (data) => {
+                if (stderr.length < 100000) stderr += data.toString();
+            });
+        }
+
+        childProcess.on('close', (code) => {
             activeProcesses.delete(childProcess);
-            resolve({ error, stdout, stderr });
+            // Only log exit if it's not a silenced list operation
+            if (!isListOp || !hasLoggedDevices) {
+                console.log(`DEBUG: NAPS2 process exited with code ${code}`);
+            }
+            resolve({ error: code !== 0 ? new Error(`Exited with code ${code}`) : null, stdout, stderr });
+        });
+
+        childProcess.on('error', (err) => {
+            console.error('DEBUG: NAPS2 spawn error:', err);
+            activeProcesses.delete(childProcess);
+            reject(err);
         });
 
         // Track the process
         activeProcesses.add(childProcess);
-
-        // Clean up on process exit
-        childProcess.on('exit', () => {
-            activeProcesses.delete(childProcess);
-        });
     });
 }
 
@@ -50,7 +84,7 @@ function getConnectedDevices() {
             const devices = stdout.split(/[\r\n]+/)
                 .map(s => s.trim())
                 .filter(s => s.length > 0);
-            console.log("Connected PnP Devices:", devices);
+            if (!hasLoggedDevices) console.log("Connected PnP Devices:", devices);
             resolve(devices);
         });
 
@@ -103,7 +137,8 @@ async function getScanners() {
 
     // List TWAIN devices (Preferred)
     try {
-        const twainResult = await execNaps2('--listdevices --driver twain');
+        if (!hasLoggedDevices) console.log('DEBUG: Listing TWAIN devices...');
+        const twainResult = await execNaps2(['--listdevices', '--driver', 'twain']);
         if (!twainResult.error) {
             twainResult.stdout.split('\n').forEach(line => {
                 const name = line.trim();
@@ -122,7 +157,8 @@ async function getScanners() {
 
     // List WIA devices (Fallback)
     try {
-        const wiaResult = await execNaps2('--listdevices --driver wia');
+        if (!hasLoggedDevices) console.log('DEBUG: Listing WIA devices...');
+        const wiaResult = await execNaps2(['--listdevices', '--driver', 'wia']);
         if (!wiaResult.error) {
             wiaResult.stdout.split('\n').forEach(line => {
                 const name = line.trim();
@@ -161,6 +197,7 @@ async function getScanners() {
         console.error('Error listing WIA:', e);
     }
 
+    hasLoggedDevices = true;
     return scanners;
 }
 
@@ -180,33 +217,66 @@ function cleanupProcesses() {
 }
 
 // Helper to auto-dismiss "Epson Scan 2" error popups (Empty Feeder)
-function monitorPopup(active) {
-    if (!active) return null;
+// REFACTORED: Uses recursive setTimeout instead of setInterval to prevent fork bombs
+// Helper to auto-dismiss "Epson Scan 2" error popups (Empty Feeder)
+// REFACTORED: Uses recursive setTimeout instead of setInterval to prevent fork bombs
+// Returns a stop function
+function monitorPopup() {
+    if (isScanCancelled) return () => { };
 
-    const interval = setInterval(() => {
+    // Internal active flag for this specific monitor instance
+    let isRunning = true;
+
+    const doCheck = () => {
+        if (isScanCancelled || !isRunning) return;
+
         // PowerShell command to find "Epson Scan 2" window and send ENTER immediately
-        // Removed Sleep delay for faster dismissal
         const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$wshell = New-Object -ComObject WScript.Shell; if ($wshell.AppActivate('Epson Scan 2')) { $wshell.SendKeys('{ENTER}') }"`;
 
-        const childProcess = exec(cmd, (err) => {
+        const childProcess = exec(cmd, { timeout: 1000 }, (err) => { // 1s timeout for the command itself
             activeProcesses.delete(childProcess);
+
+            // Schedule next check ONLY after this one completes
+            // This prevents process piling (fork bomb)
+            if (!isScanCancelled && isRunning) {
+                // Heartbeat log every ~5 seconds (50 * 100ms) to detect zombie loops
+                if (Math.random() < 0.02) console.log('DEBUG: Monitor Popup is ACTIVE...');
+
+                const timeoutId = setTimeout(doCheck, 100); // 100ms delay between checks
+                activeTimeouts.add(timeoutId);
+            }
         });
+
         activeProcesses.add(childProcess);
         childProcess.on('exit', () => activeProcesses.delete(childProcess));
-    }, 50); // Check every 50ms for instant dismissal
+    };
 
-    // Track the interval
-    activeIntervals.add(interval);
-    return interval;
+    // Start the recursive check
+    doCheck();
+
+    // Return the stop function
+    return () => {
+        isRunning = false;
+    };
 }
 
-async function performScan(scannerId, resolution = 'mid', doubleSided = false, source = 'auto') {
-    // Kill any stuck previous sessions first
-    await cleanupProcesses();
+async function performScan(scannerId, resolution = 'mid', doubleSided = false, source = 'auto', pageSize = 'a4') {
+    // Reset cancel flag
+    isScanCancelled = false;
+
+    // Aggressively cleanup ANY previous session artifacts (timeouts, processes)
+    // This protects against "zombie" loops from previous attempts
+    await cleanup();
+
+    // IMPORTANT: cleanup() sets isScanCancelled = true. 
+    // We must reset it to false HERE to allow the new scan to proceed.
+    isScanCancelled = false;
 
     if (!await checkNaps2()) {
         throw new Error('Scanning engine (NAPS2) not found.');
     }
+
+    if (isScanCancelled) throw new Error('Scan cancelled');
 
     // Parse ID "driver:name"
     const [driver, ...nameParts] = scannerId.split(':');
@@ -223,22 +293,42 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false, s
 
     // Helper function to execute a single scan attempt
     const executeScanSession = async (naps2Source, enableMonitor = false) => {
+        if (isScanCancelled) throw new Error('Scan cancelled');
+
         const tempDir = os.tmpdir();
         const filePrefix = `scan_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const outputPattern = path.join(tempDir, `${filePrefix}_$(nnnn).jpg`);
 
-        const args = ` -o "${outputPattern}" --source ${naps2Source} --driver ${driver} --device "${deviceName}" --dpi ${dpi} --jpegquality 80 --force`;
-        console.log(`Starting scan [Source=${naps2Source}]:`, args);
+        // Args as array for spawn
+        const args = [
+            '-o', outputPattern,
+            '--source', naps2Source,
+            '--driver', driver,
+            '--device', deviceName,
+            '--dpi', dpi.toString(),
+            '--jpegquality', '80',
+            '--force'
+        ];
+
+        // Add page size if not 'auto' (let scanner auto-detect)
+        if (pageSize && pageSize !== 'auto') {
+            args.push('--pagesize', pageSize);
+        }
+
+        console.log(`DEBUG: Starting scan session [Source=${naps2Source}]`);
 
         // Start Popup Monitor if requested (e.g. for Auto-Feeder attempt)
-        let monitorInterval = null;
+        let stopMonitor = null;
         if (enableMonitor) {
-            console.log('Enabling popup monitor for ' + naps2Source);
-            monitorInterval = monitorPopup(true);
+            console.log('DEBUG: Enabling popup monitor for ' + naps2Source);
+            stopMonitor = monitorPopup();
         }
 
         try {
-            const result = await execNaps2(args);
+            // Use silent=true to completely ignore stdout/stderr (prevents memory leak)
+            const result = await execNaps2(args, true);
+
+            if (isScanCancelled) throw new Error('Scan cancelled');
 
             // Check for generated files
             const files = fs.readdirSync(tempDir)
@@ -267,12 +357,12 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false, s
             return images;
         } finally {
             // Stop monitor
-            if (monitorInterval) {
-                clearInterval(monitorInterval);
-                activeIntervals.delete(monitorInterval);
+            if (stopMonitor) {
+                stopMonitor();
             }
         }
     };
+
     // Strategy Determination
     let primarySource = 'glass';
     let fallbackSource = null;
@@ -295,6 +385,8 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false, s
         console.log(`Attempting scan from ${primarySource}...`);
         return await executeScanSession(primarySource, monitorPrimary);
     } catch (primaryError) {
+        if (isScanCancelled) throw new Error('Scan cancelled');
+
         if (fallbackSource) {
             console.warn(`Primary source ${primarySource} failed (${primaryError.message}). Retrying with ${fallbackSource}...`);
             // Cleanup processes again before retry, just in case
@@ -302,6 +394,7 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false, s
             try {
                 return await executeScanSession(fallbackSource, false);
             } catch (fallbackError) {
+                if (isScanCancelled) throw new Error('Scan cancelled');
                 // If fallback also fails, throw combined error or fallback error
                 throw new Error(`Auto-scan failed. Feeder: ${primaryError.message}. Flatbed: ${fallbackError.message}`);
             }
@@ -312,17 +405,19 @@ async function performScan(scannerId, resolution = 'mid', doubleSided = false, s
     }
 }
 
-// Cleanup function to kill all active processes and intervals
+// Cleanup function to kill all active processes, timeouts and stop monitors
 async function cleanup() {
-    console.log(`Cleaning up ${activeProcesses.size} processes and ${activeIntervals.size} intervals...`);
+    console.log(`Cleaning up... Flagging cancellation.`);
+    isScanCancelled = true;
 
-    // Clear all intervals
-    for (const interval of activeIntervals) {
-        clearInterval(interval);
+    // Clear all timeouts
+    for (const timeout of activeTimeouts) {
+        clearTimeout(timeout);
     }
-    activeIntervals.clear();
+    activeTimeouts.clear();
 
     // Kill all active child processes
+    console.log(`Killing ${activeProcesses.size} active processes...`);
     for (const proc of activeProcesses) {
         try {
             proc.kill('SIGTERM');
