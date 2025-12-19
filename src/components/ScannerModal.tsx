@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { ScanLine, Loader2, Trash2, Save, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -146,6 +146,22 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     // Note: We keep [t] dependency because clean React rules, but usage in useEffect will be guarded.
 
     const initializedRef = React.useRef(false);
+    const overlayRef = useRef<HTMLDivElement>(null);
+
+    // Prevent background scroll when wheel events occur on the overlay
+    useEffect(() => {
+        const overlay = overlayRef.current;
+        if (!overlay || !isOpen) return;
+
+        const preventScroll = (e: WheelEvent) => {
+            e.preventDefault();
+        };
+
+        overlay.addEventListener('wheel', preventScroll, { passive: false });
+        return () => {
+            overlay.removeEventListener('wheel', preventScroll);
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) {
@@ -268,6 +284,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
     const content = (
         <div
+            ref={overlayRef}
             className={`image-viewer-overlay flex items-center justify-center ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
             style={{ zIndex: 10000 }}
         >
@@ -289,7 +306,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="scanner-modal-content" style={{ height: '470px' }}>
+                <div className="scanner-modal-content">
                     {/* Left: Scanner Options */}
                     <div className="scanner-options">
                         {/* Scanner Selection */}
@@ -451,7 +468,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                     </div>
 
                     {/* Right: Preview Area */}
-                    <div className="scanner-preview" style={{ minHeight: '420px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="scanner-preview">
                         <div className="scanner-preview-header">
                             <h4>{t('scanned_images')} ({scannedImages.length})</h4>
                             {scannedImages.length > 0 && (
