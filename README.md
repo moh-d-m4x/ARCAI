@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# ARCAI - Intelligent Archives
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ARCAI is an intelligent document management system designed to streamline archiving and retrieval processes. By leveraging advanced AI models (such as Google Gemini and OpenAI), ARCAI analyzes, categorizes, and extracts critical information from documents, organizing them into an easily searchable database.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Intelligent Dashboard
+View, manage, and organzie all your stored documents in one central hub. The dashboard provides quick access to your archives with powerful filtering options.
+![Dashboard](docs/dashboard.png)
 
-## React Compiler
+### AI-Powered Entry
+Upload documents and let the AI do the heavy lifting. ARCAI automatically analyzes content to fill in details, tags, and summaries, reducing manual data entry.
+![Entry Page](docs/entry_page.png)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Comprehensive Settings
+Customize your experience by configuring AI providers (Gemini, OpenAI, LLM7), adjusting themes, and managing application preferences.
+![Settings Page](docs/settings_page.png)
 
-## Expanding the ESLint configuration
+### Key Capabilities
+- **Smart Search**: Find documents instantly with advanced search capabilities, including Arabic text normalization.
+- **Local-First Architecture**: Your data is stored locally using Dexie.js (IndexedDB) for maximum privacy and speed.
+- **Multi-Provider AI**: seamless integration with multiple AI providers to suit your needs.
+- **Responsive Design**: optimized for both desktop and mobile viewing.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Framework**: [React 19](https://react.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Runtime**: [Electron](https://www.electronjs.org/) (for Desktop)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper)
+- **AI Integration**:
+  - Google Generative AI SDK
+  - OpenAI SDK
+- **Styling**: Modern CSS with responsive design principles
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📦 Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ARCAI
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Run Development Server** (Web)
+   ```bash
+   npm run dev
+   ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. **Run Desktop App** (Electron)
+   ```bash
+   npm run electron
+   ```
+
+## 📱 Compatibility
+
+- **Desktop**: Fully supported via Electron (Windows/macOS/Linux).
+- **Mobile**: The application is designed to be responsive and mobile-friendly.

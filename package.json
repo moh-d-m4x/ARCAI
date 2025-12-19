@@ -3,15 +3,21 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron-app/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "dist": "tsc -b && vite build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron electron-app/main.cjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@google/generative-ai": "^0.24.1",
+    "astral-regex": "^2.0.0",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
     "jspdf": "^3.0.4",
@@ -22,6 +28,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",
+    "slice-ansi": "^7.1.2",
     "sql.js": "^1.13.0",
     "xlsx": "^0.18.5"
   },
