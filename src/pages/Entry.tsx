@@ -5,13 +5,16 @@ import { db } from '../db';
 import type { ArcaiDocument } from '../types';
 // import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useMobileMenu } from '../contexts/MobileMenuContext';
 import { ImageCarousel } from '../components/ImageCarousel';
 import { ToastNotification } from '../components/ToastNotification';
 import { ScannerModal } from '../components/ScannerModal';
+import { MobileHeader } from '../components/MobileHeader';
 
 
 export const Entry: React.FC = () => {
     const { t } = useLanguage();
+    const { toggleMenu } = useMobileMenu();
     // const navigate = useNavigate(); // Removed as we stay on page
     const [files, setFiles] = useState<File[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -148,7 +151,10 @@ export const Entry: React.FC = () => {
 
     return (
         <div className="page-container animate-fade-in">
-            <h1 className="page-title">{t('new_entry_title')}</h1>
+            {/* Mobile Header with hamburger */}
+            <MobileHeader title={t('new_entry_title')} onMenuClick={toggleMenu} />
+
+            <h1 className="page-title desktop-only">{t('new_entry_title')}</h1>
 
             <div className="grid-layout">
                 <div className="glass-panel section">

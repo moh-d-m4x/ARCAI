@@ -5,6 +5,7 @@ import { Search, FileText, ArrowUpRight, ArrowDownLeft, Calendar, User, Download
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useMobileMenu } from '../contexts/MobileMenuContext';
 import { normalizeArabicText } from '../utils/textUtils';
 import { DocumentThumbnail } from '../components/DocumentThumbnail';
 import type { ArcaiDocument } from '../types';
@@ -12,6 +13,7 @@ import type { ArcaiDocument } from '../types';
 import { DocumentInlineEdit } from '../components/DocumentInlineEdit';
 import { ImageViewer } from '../components/ImageViewer';
 import { Pagination } from '../components/Pagination';
+import { MobileHeader } from '../components/MobileHeader';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -23,6 +25,7 @@ const sanitizeFilename = (name: string): string => {
 
 export const Dashboard: React.FC = () => {
     const { dir, t } = useLanguage();
+    const { toggleMenu } = useMobileMenu();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedDocId, setExpandedDocId] = useState<number | null>(null);
@@ -209,8 +212,11 @@ export const Dashboard: React.FC = () => {
 
     return (
         <div className="page-container animate-fade-in">
+            {/* Mobile Header with hamburger */}
+            <MobileHeader title={t('documents_title')} onMenuClick={toggleMenu} />
+
             <div className="search-header mb-6">
-                <h1 className="page-title mb-0">{t('documents_title')}</h1>
+                <h1 className="page-title mb-0 desktop-only">{t('documents_title')}</h1>
                 <div className="search-bar-container">
                     <Search className="search-icon" size={20} />
                     <input
@@ -225,7 +231,7 @@ export const Dashboard: React.FC = () => {
 
             <div className="stats-grid mb-6">
                 <div
-                    className={`glass-panel stat-card cursor-pointer transition-all ${filterType === 'all' ? 'active' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                    className={`glass-panel stat-card stat-card-full cursor-pointer transition-all ${filterType === 'all' ? 'active' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
                     onClick={() => { setFilterType('all'); setCurrentPage(1); }}
                 >
                     <h3>{t('total_docs')}</h3>

@@ -39,6 +39,59 @@ body {
   /* Direction handled by [dir] attribute */
 }
 
+/* Enable smooth scrolling globally */
+html,
+.os-viewport {
+  scroll-behavior: smooth;
+}
+
+/* Slower scroll transitions for elements */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* OverlayScrollbars Custom Theme - Matches App Style */
+.os-theme-custom,
+.os-scrollbar.os-theme-custom {
+  --os-size: 8px !important;
+  --os-padding-perpendicular: 1px;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 10px;
+  --os-handle-border-radius: 10px;
+  --os-handle-bg: rgba(100, 116, 139, 0.7);
+  --os-handle-bg-hover: rgba(100, 116, 139, 0.9);
+  --os-handle-bg-active: var(--accent-color);
+  --os-track-bg: rgba(100, 116, 139, 0.1);
+  --os-track-bg-hover: rgba(100, 116, 139, 0.15);
+}
+
+[data-theme='dark'] .os-theme-custom,
+[data-theme='dark'] .os-scrollbar.os-theme-custom {
+  --os-handle-bg: rgba(148, 163, 184, 0.7);
+  --os-handle-bg-hover: rgba(148, 163, 184, 0.9);
+  --os-handle-bg-active: var(--accent-color);
+  --os-track-bg: rgba(148, 163, 184, 0.1);
+  --os-track-bg-hover: rgba(148, 163, 184, 0.15);
+}
+
+.os-theme-custom .os-scrollbar-handle {
+  transition: background 0.3s ease, opacity 0.3s ease;
+}
+
+/* RTL (Arabic): Scrollbar on RIGHT side */
+[dir="rtl"] .os-scrollbar-vertical {
+  right: 0 !important;
+  left: auto !important;
+}
+
+/* LTR (English): Scrollbar on LEFT side */
+[dir="ltr"] .os-scrollbar-vertical {
+  left: 0 !important;
+  right: auto !important;
+}
+
 [dir="rtl"] {
   text-align: right;
   direction: rtl;
@@ -817,8 +870,8 @@ textarea:focus {
 .search-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-wrap: nowrap;
   gap: 1rem;
 }
 
@@ -826,6 +879,20 @@ textarea:focus {
   position: relative;
   width: 100%;
   max-width: 400px;
+  min-width: 150px;
+  flex-shrink: 1;
+}
+
+/* Make search bar full width on mobile and allow wrapping */
+@media (max-width: 768px) {
+  .search-header {
+    flex-wrap: wrap;
+  }
+
+  .search-bar-container {
+    max-width: 100%;
+    min-width: unset;
+  }
 }
 
 .search-icon {
@@ -915,8 +982,35 @@ textarea:focus {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+}
+
+/* When 3 columns don't fit, reorganize to avoid gaps */
+@media (max-width: 900px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* First stat card spans full width */
+  .stat-card-full {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Even smaller: reduce padding and gap */
+@media (max-width: 768px) {
+  .stats-grid {
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
 }
 
 .stat-card {
@@ -1249,6 +1343,124 @@ textarea:focus {
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Intermediate breakpoint: sidebar visible but content narrow (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .document-card.expanded {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Icon stays in header row */
+  .document-card.expanded .doc-icon {
+    flex-shrink: 0;
+    order: 1;
+  }
+
+  /* Thumbnail and buttons: stay in header row */
+  .document-card.expanded>div:last-child {
+    flex-shrink: 0;
+    order: 2;
+    margin-inline-start: auto;
+  }
+
+  /* Doc content takes full width below header */
+  .document-card.expanded .doc-content {
+    flex-basis: 100%;
+    order: 3;
+    min-width: 0;
+  }
+
+  /* Form grid: keep 2 columns */
+  .document-card.expanded .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  /* Form groups stretch */
+  .document-card.expanded .form-group {
+    width: 100%;
+  }
+
+  /* Inputs stretch to full width */
+  .document-card.expanded .form-group input,
+  .document-card.expanded .form-group select,
+  .document-card.expanded .form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Full width items span both columns */
+  .document-card.expanded .form-group.full-width {
+    grid-column: span 2;
+  }
+}
+
+/* Mobile layout for expanded document cards */
+@media (max-width: 768px) {
+  .document-card.expanded {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* On mobile expanded: icon stays in header row */
+  .document-card.expanded .doc-icon {
+    flex-shrink: 0;
+    order: 1;
+  }
+
+  /* Thumbnail and export buttons: stay in header row next to icon */
+  .document-card.expanded>div:last-child {
+    flex-shrink: 0;
+    order: 2;
+    margin-inline-start: auto;
+  }
+
+  /* Doc content takes full width on its own row below header */
+  .document-card.expanded .doc-content {
+    flex-basis: 100%;
+    order: 3;
+    min-width: 0;
+  }
+
+  /* Form grid on mobile: keep 2 columns to use full width */
+  .document-card.expanded .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  /* Make form groups stretch to fill available space */
+  .document-card.expanded .form-group {
+    width: 100%;
+  }
+
+  /* Ensure inputs/selects stretch to full width */
+  .document-card.expanded .form-group input,
+  .document-card.expanded .form-group select,
+  .document-card.expanded .form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Full width items still span both columns */
+  .document-card.expanded .form-group.full-width {
+    grid-column: span 2;
+  }
+
+  /* Reduce thumbnail size on mobile expanded view */
+  .document-card.expanded .doc-thumbnail-container {
+    width: 60px;
+    height: 60px;
+  }
+
+  /* Smaller buttons on mobile */
+  .document-card.expanded .icon-btn {
+    width: 32px;
+    height: 32px;
   }
 }
 
@@ -1924,4 +2136,202 @@ textarea:focus {
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
+}
+
+/* ============================================
+   Mobile Slide Menu Styles
+   ============================================ */
+
+/* Mobile Menu Toggle Button (Hamburger) */
+.mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  z-index: 100;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s ease;
+}
+
+[dir="rtl"] .mobile-menu-toggle {
+  right: 1rem;
+  left: auto;
+}
+
+[dir="ltr"] .mobile-menu-toggle {
+  left: 1rem;
+  right: auto;
+}
+
+.mobile-menu-toggle:hover {
+  transform: scale(1.05);
+  background: var(--bg-secondary);
+}
+
+.mobile-menu-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Mobile Close Button inside Sidebar */
+.mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+[dir="rtl"] .mobile-close-btn {
+  left: 1rem;
+  right: auto;
+}
+
+[dir="ltr"] .mobile-close-btn {
+  right: 1rem;
+  left: auto;
+}
+
+.mobile-close-btn:hover {
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* Mobile Header Component Styles - BASE STYLES (desktop: hidden) */
+.mobile-header {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mobile-header .mobile-menu-toggle {
+  display: flex;
+  position: static;
+  align-items: center;
+  justify-content: center;
+  z-index: auto;
+}
+
+.mobile-header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+/* Mobile Styles - Only for phones (max-width: 768px) */
+@media (max-width: 768px) {
+
+  /* Show mobile menu button */
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Show overlay when menu is open */
+  .mobile-menu-overlay {
+    display: block;
+  }
+
+  /* Show close button in sidebar */
+  .mobile-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Hide sidebar by default on mobile */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+  }
+
+  [dir="rtl"] .sidebar {
+    transform: translateX(100%);
+  }
+
+  /* Show sidebar when open */
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Remove main content margin on mobile */
+  [dir="rtl"] .main-content,
+  [dir="ltr"] .main-content {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 1rem;
+    padding-top: 1rem;
+  }
+
+  /* Adjust sidebar inner padding for close button */
+  .sidebar-inner {
+    padding-top: 3.5rem;
+  }
+
+  /* Make sidebar full height with shadow for overlay effect */
+  .sidebar.mobile-open .sidebar-inner {
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Hide desktop-only elements on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show mobile header on mobile - with !important to override base style */
+  .mobile-header {
+    display: flex !important;
+  }
+}
+
+/* Slide animation keyframes */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
