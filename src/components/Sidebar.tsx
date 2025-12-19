@@ -1,9 +1,14 @@
 import { useLanguage } from '../contexts/LanguageContext';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, X } from 'lucide-react';
 import { Logo } from './Logo';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const { t } = useLanguage();
 
     const navItems = [
@@ -12,9 +17,19 @@ export const Sidebar: React.FC = () => {
         { icon: <Settings size={20} />, label: t('settings'), path: '/settings' },
     ];
 
+    const handleNavClick = () => {
+        // Close mobile menu when navigating
+        onClose();
+    };
+
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isOpen ? 'mobile-open' : ''}`}>
             <div className="sidebar-inner glass">
+                {/* Mobile close button */}
+                <button className="mobile-close-btn" onClick={onClose}>
+                    <X size={24} />
+                </button>
+
                 <div className="brand">
                     <div className="brand-logo-wrapper">
                         <Logo size={40} />
@@ -28,6 +43,7 @@ export const Sidebar: React.FC = () => {
                             key={item.path}
                             to={item.path}
                             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                            onClick={handleNavClick}
                         >
                             {item.icon}
                             <span>{item.label}</span>
@@ -38,3 +54,4 @@ export const Sidebar: React.FC = () => {
         </aside>
     );
 };
+

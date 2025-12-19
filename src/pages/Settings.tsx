@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../db';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useMobileMenu } from '../contexts/MobileMenuContext';
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { ImportPreviewModal } from '../components/ImportPreviewModal';
+import { MobileHeader } from '../components/MobileHeader';
 import type { AIProvider } from '../types';
 
 export const Settings: React.FC = () => {
     const { language, setLanguage, t } = useLanguage();
+    const { toggleMenu } = useMobileMenu();
     const [aiProvider, setAiProvider] = useState<AIProvider>('gemini');
     const [geminiKey, setGeminiKey] = useState('');
     const [openaiKey, setOpenaiKey] = useState('');
@@ -137,7 +140,10 @@ export const Settings: React.FC = () => {
 
     return (
         <div className="page-container animate-fade-in">
-            <h1 className="page-title">{t('settings')}</h1>
+            {/* Mobile Header with hamburger */}
+            <MobileHeader title={t('settings')} onMenuClick={toggleMenu} />
+
+            <h1 className="page-title desktop-only">{t('settings')}</h1>
 
             <div className="glass-panel section">
                 <h2 className="section-title">{t('language')}</h2>
