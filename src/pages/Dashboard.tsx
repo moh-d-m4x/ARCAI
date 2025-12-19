@@ -272,10 +272,6 @@ export const Dashboard: React.FC = () => {
                                 </span>
                             </div>
                             <p className="doc-summary">{doc.content_summary}</p>
-
-                            {expandedDocId === doc.id && (
-                                <DocumentInlineEdit doc={doc} />
-                            )}
                         </div>
                         {/* Thumbnail and Export button container */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -287,7 +283,7 @@ export const Dashboard: React.FC = () => {
                             </div>
                             {/* Export button - only show when expanded and has images */}
                             {expandedDocId === doc.id && doc.image_data && (
-                                <div className="animate-fade-in" style={{ display: 'flex', gap: '8px' }}>
+                                <div className="animate-fade-in doc-actions-container" style={{ display: 'flex' }}>
                                     <div style={{ position: 'relative' }}>
                                         <button
                                             className="icon-btn"
@@ -295,8 +291,6 @@ export const Dashboard: React.FC = () => {
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                width: '36px',
-                                                height: '36px',
                                                 borderRadius: '8px',
                                                 background: 'rgba(255, 255, 255, 0.1)',
                                                 border: '1px solid rgba(255, 255, 255, 0.2)'
@@ -439,8 +433,6 @@ export const Dashboard: React.FC = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            width: '36px',
-                                            height: '36px',
                                             borderRadius: '8px',
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             border: '1px solid rgba(255, 255, 255, 0.2)'
@@ -557,6 +549,10 @@ export const Dashboard: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Inline Edit Form - at end of card for proper RTL/LTR flow */}
+                        {expandedDocId === doc.id && (
+                            <DocumentInlineEdit doc={doc} />
+                        )}
                     </div>
                 ))}
 

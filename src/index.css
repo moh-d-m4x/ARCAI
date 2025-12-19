@@ -136,6 +136,12 @@ button {
   transition: all 0.2s;
 }
 
+/* icon button num 1 */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -728,6 +734,11 @@ textarea:focus {
   gap: 1rem;
 }
 
+.form-grid .form-group {
+  min-width: 0;
+  width: 100%;
+}
+
 .full-width {
   grid-column: span 2;
 }
@@ -1017,6 +1028,7 @@ textarea:focus {
   padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  text-align: center;
 }
 
 .stat-card h3 {
@@ -1063,10 +1075,20 @@ textarea:focus {
   box-shadow: var(--shadow-lg);
 }
 
+/* Expanded card base styles - apply at all sizes */
+.document-card.expanded {
+  flex-wrap: wrap;
+}
+
+.document-card.expanded .inline-edit-form {
+  flex-basis: 100%;
+  width: 100%;
+}
+
 .doc-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: px;
   background: var(--bg-primary);
   display: flex;
   align-items: center;
@@ -1223,6 +1245,7 @@ textarea:focus {
   justify-content: center;
   overflow: hidden;
   /* Prevent scroll bars if zoomed high */
+  overscroll-behavior: contain;
 }
 
 [data-theme='dark'] .image-viewer-overlay {
@@ -1333,6 +1356,7 @@ textarea:focus {
 }
 
 /* Responsive Grid for Inline Edit */
+/* Responsive Grid for Inline Edit */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1340,9 +1364,35 @@ textarea:focus {
   margin-bottom: 1rem;
 }
 
-@media (max-width: 640px) {
+.form-grid .form-group {
+  min-width: 0;
+  width: 100%;
+}
+
+.form-grid .form-group input,
+.form-grid .form-group select,
+.form-grid .form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 376px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .full-width {
+    grid-column: span 1;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1145px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .full-width {
+    grid-column: span 1;
   }
 }
 
@@ -1350,27 +1400,25 @@ textarea:focus {
 @media (min-width: 769px) and (max-width: 1024px) {
   .document-card.expanded {
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   /* Icon stays in header row */
   .document-card.expanded .doc-icon {
     flex-shrink: 0;
-    order: 1;
   }
 
-  /* Thumbnail and buttons: stay in header row */
-  .document-card.expanded>div:last-child {
-    flex-shrink: 0;
-    order: 2;
-    margin-inline-start: auto;
-  }
-
-  /* Doc content takes full width below header */
+  /* Doc content stays in header row */
   .document-card.expanded .doc-content {
-    flex-basis: 100%;
-    order: 3;
+    flex: 1;
     min-width: 0;
+  }
+
+  /* Inline edit form takes full width on its own row */
+  .document-card.expanded .inline-edit-form {
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 0.5rem;
   }
 
   /* Form grid: keep 2 columns */
@@ -1403,27 +1451,30 @@ textarea:focus {
 @media (max-width: 768px) {
   .document-card.expanded {
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   /* On mobile expanded: icon stays in header row */
   .document-card.expanded .doc-icon {
     flex-shrink: 0;
-    order: 1;
   }
 
-  /* Thumbnail and export buttons: stay in header row next to icon */
+  /* Doc content stays in header row, takes available space */
+  .document-card.expanded .doc-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Thumbnail and export buttons: stay in header row */
   .document-card.expanded>div:last-child {
     flex-shrink: 0;
-    order: 2;
-    margin-inline-start: auto;
   }
 
-  /* Doc content takes full width on its own row below header */
-  .document-card.expanded .doc-content {
+  /* Make inline edit form take full width on its own row */
+  .document-card.expanded .inline-edit-form {
     flex-basis: 100%;
-    order: 3;
-    min-width: 0;
+    width: 100%;
+    margin-top: 0.5rem;
   }
 
   /* Form grid on mobile: keep 2 columns to use full width */
@@ -1451,16 +1502,148 @@ textarea:focus {
     grid-column: span 2;
   }
 
-  /* Reduce thumbnail size on mobile expanded view */
+  /* Reduce thumbnail size on mobile expanded view (2) */
   .document-card.expanded .doc-thumbnail-container {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
   }
 
-  /* Smaller buttons on mobile */
+  /* Buttons on mobile to align with thumbnail */
   .document-card.expanded .icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* edit icon num 3 */
+  .document-card.expanded .icon-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* General icon size for any document card icons at this breakpoint */
+  .document-card .icon-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* Base gap for actions container */
+.doc-actions-container {
+  gap: 0.5rem;
+}
+
+/* Very narrow screens (376px minimum): single column for form */
+@media (max-width: 450px) {
+
+  /* Constrain main content and document list */
+  .main-content {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .documents-list {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Document card constraints */
+  .document-card {
+    max-width: 100%;
+    padding: 1rem;
+    gap: 0.75rem;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .document-card.expanded {
+    overflow-x: hidden;
+  }
+
+  /* Single column form grid */
+  .document-card.expanded .form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  /* Full width items just span 1 column */
+  .document-card.expanded .form-group.full-width {
+    grid-column: span 1;
+  }
+
+  /* Ensure inline edit form doesn't overflow */
+  .document-card.expanded .inline-edit-form {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Smaller doc-icon at narrow widths */
+  .doc-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Constrain stats grid */
+  .stats-grid {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+    overflow-x: hidden;
+  }
+
+  .stat-card h3 {
+    font-size: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  /* Smaller inline edit action buttons */
+  .inline-edit-actions {
+    gap: 0.5rem !important;
+    flex-wrap: wrap;
+  }
+
+  .inline-edit-actions button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .doc-actions-container {
+    gap: 0.25rem;
+  }
+
+  .document-card .icon-btn {
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px !important;
+    min-height: 10px !important;
+    padding: 0 !important;
+    /* Removed padding to ensure size is exact */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+
+  .document-card .icon-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Much smaller thumbnail at very narrow widths (3) */
+  .doc-thumbnail-container {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .doc-thumbnail-placeholder {
+    width: 60px !important;
+    height: 60px !important;
   }
 }
 
@@ -1789,6 +1972,7 @@ textarea:focus {
   box-shadow: var(--shadow-lg);
   max-height: 92vh;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .scanner-modal-header {
@@ -2021,13 +2205,15 @@ textarea:focus {
   flex: 1;
   min-width: 0;
   min-height: 400px;
-  overflow: hidden;
+  overflow: visible;
+  padding-left: 0.25rem;
 }
 
 .scanner-preview-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .scanner-preview-header h4 {
@@ -2042,9 +2228,14 @@ textarea:focus {
   font-size: 0.75rem;
 }
 
-/* A4 aspect ratio preview (1:1.414) */
+/* A4 aspect ratio preview (1:1.414) - scales with container */
 .scanner-preview-area {
-  flex: 1;
+  /* Don't use flex: 1 as it overrides aspect-ratio */
+  flex: 0 1 auto;
+  height: 100%;
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
   background: var(--bg-primary);
   border: 2px dashed var(--glass-border);
   border-radius: 8px;
@@ -2053,12 +2244,9 @@ textarea:focus {
   justify-content: center;
   overflow: hidden;
   position: relative;
-  /* A4 aspect ratio container */
+  /* A4 aspect ratio - height determines width */
   aspect-ratio: 1 / 1.414;
-  min-height: 350px;
-  max-height: none;
   margin: 0 auto;
-  width: auto;
 }
 
 .scanner-preview-empty {
@@ -2136,6 +2324,203 @@ textarea:focus {
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
+}
+
+/* ============================================
+   Scanner Modal Responsive Styles
+   ============================================ */
+
+/* Large screens - expand modal */
+@media (min-width: 900px) {
+  .scanner-modal {
+    max-width: 800px;
+    max-height: 90vh;
+  }
+
+  .scanner-preview {
+    min-height: 450px;
+  }
+
+  .scanner-preview-area {
+    min-height: 400px;
+  }
+}
+
+/* Medium screens */
+@media (max-width: 768px) {
+  .scanner-modal {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 1rem;
+  }
+
+  .scanner-modal-header {
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .scanner-modal-header .delete-modal-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .scanner-modal-header .delete-modal-title {
+    font-size: 1rem;
+  }
+
+  .scanner-modal-content {
+    gap: 1rem;
+  }
+
+  .scanner-options {
+    width: 220px;
+    gap: 0.5rem;
+  }
+
+  .scanner-option-group {
+    gap: 0.25rem;
+  }
+
+  .scanner-option-group label {
+    font-size: 0.75rem;
+  }
+
+  .scanner-option-group select {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .resolution-btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .scanner-scan-btn {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .scanner-preview {
+    min-height: 300px;
+  }
+
+  .scanner-preview-area {
+    min-height: 250px;
+  }
+
+  .scanner-actions-inline button {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .scanner-modal-actions {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .scanner-modal-actions button {
+    min-width: 100px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Small screens - keep horizontal layout, shrink preview */
+@media (max-width: 640px) {
+  .scanner-modal {
+    max-width: 98vw;
+    max-height: 98vh;
+    padding: 0.75rem;
+  }
+
+  .scanner-modal-content {
+    /* Keep horizontal layout - don't stack */
+    flex-direction: row !important;
+    gap: 0.75rem;
+    overflow-y: auto;
+  }
+
+  .scanner-options {
+    /* Fixed width for options panel */
+    width: 200px !important;
+    flex: 0 0 200px !important;
+  }
+
+  .scanner-preview {
+    /* Allow preview to shrink */
+    flex: 1;
+    min-width: 0;
+    min-height: 150px;
+  }
+
+  /* Keep A4 aspect ratio while shrinking */
+  .scanner-preview-area {
+    aspect-ratio: 1 / 1.414;
+    min-height: 0;
+  }
+
+  .scanner-actions-inline {
+    padding-top: 0.5rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 450px) {
+  .scanner-modal {
+    padding: 0.5rem;
+  }
+
+  .scanner-modal-header {
+    gap: 0.5rem;
+  }
+
+  .scanner-modal-header .delete-modal-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .scanner-modal-header .delete-modal-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .scanner-modal-header .delete-modal-title {
+    font-size: 0.9rem;
+  }
+
+  .scanner-options {
+    gap: 0.4rem;
+  }
+
+  .resolution-buttons {
+    gap: 0.25rem;
+  }
+
+  .resolution-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .scanner-checkbox {
+    font-size: 0.75rem;
+  }
+
+  .scanner-preview-header h4 {
+    font-size: 0.75rem;
+  }
+
+  .scanner-preview-header .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .scanner-modal-actions button {
+    min-width: 80px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
 }
 
 /* ============================================
