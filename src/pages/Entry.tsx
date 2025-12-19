@@ -6,7 +6,7 @@ import type { ArcaiDocument } from '../types';
 // import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ImageCarousel } from '../components/ImageCarousel';
-import { NotificationModal } from '../components/NotificationModal';
+import { ToastNotification } from '../components/ToastNotification';
 import { ScannerModal } from '../components/ScannerModal';
 
 
@@ -291,11 +291,12 @@ export const Entry: React.FC = () => {
                 </div>
             </div>
 
-            <NotificationModal
+            <ToastNotification
                 isOpen={notification.isOpen}
                 onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
                 message={notification.message}
                 type={notification.type}
+                duration={3000}
             />
 
             <ScannerModal

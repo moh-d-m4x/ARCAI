@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Trash2, ImagePlus, Download } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Trash2, ImagePlus, Download, Printer } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -308,6 +308,98 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ images, onClose, onDel
                 <div style={{ color: 'white', fontSize: '12px', display: 'flex', alignItems: 'center' }}>{Math.round(scale * 100)}%</div>
                 <button className="icon-btn" onClick={() => setScale(s => Math.min(s + 0.5, 5))}>
                     <ZoomIn size={20} />
+                </button>
+                <button
+                    className="icon-btn"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!imageUrl) return;
+
+                        // Create a hidden iframe for printing
+                        const iframe = document.createElement('iframe');
+                        iframe.style.position = 'fixed';
+                        iframe.style.right = '0';
+                        iframe.style.bottom = '0';
+                        iframe.style.width = '0';
+                        iframe.style.height = '0';
+                        iframe.style.border = 'none';
+                        document.body.appendChild(iframe);
+
+                        const iframeDoc = iframe.contentWindow?.document;
+                        if (!iframeDoc) return;
+
+                        iframeDoc.open();
+                        iframeDoc.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>${documentName || 'Image'}</title>
+                                <style>
+                                    @page {
+                                        size: auto;
+                                        margin: 0;
+                                    }
+                                    * {
+                                        margin: 0;
+                                        padding: 0;
+                                        box-sizing: border-box;
+                                    }
+                                    html, body {
+                                        margin: 0;
+                                        padding: 0;
+                                        width: 100%;
+                                        height: 100%;
+                                    }
+                                    .page {
+                                        display: flex;
+                                        justify-content: center;
+                                        align-items: center;
+                                        height: 100vh;
+                                        width: 100vw;
+                                        overflow: hidden;
+                                    }
+                                    img {
+                                        max-width: 100%;
+                                        max-height: 100%;
+                                        width: auto;
+                                        height: auto;
+                                        display: block;
+                                        object-fit: contain;
+                                    }
+                                    @media print {
+                                        .page {
+                                            width: 100%;
+                                            height: 100vh;
+                                            overflow: hidden;
+                                            break-inside: avoid;
+                                        }
+                                        img {
+                                            max-width: 100%;
+                                            max-height: 100%;
+                                            object-fit: contain;
+                                        }
+                                    }
+                                </style>
+                            </head>
+                            <body><div class="page"><img src="${imageUrl}" /></div></body>
+                            </html>
+                        `);
+                        iframeDoc.close();
+
+                        // Wait for image to load then print
+                        iframe.onload = () => {
+                            setTimeout(() => {
+                                iframe.contentWindow?.print();
+                                // Cleanup after print dialog closes
+                                setTimeout(() => {
+                                    document.body.removeChild(iframe);
+                                }, 1000);
+                            }, 500);
+                        };
+                    }}
+                    title="Print image"
+                >
+                    <Printer size={20} />
                 </button>
                 <div style={{ position: 'relative' }}>
                     <button

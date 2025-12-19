@@ -157,6 +157,44 @@ textarea:focus {
   }
 }
 
+/* Toast Notification Animations */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px);
+  }
+}
+
+.toast-notification {
+  font-family: var(--font-family);
+}
+
+[data-theme='dark'] .toast-notification {
+  background: rgba(30, 41, 59, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .toast-notification span {
+  color: var(--text-primary) !important;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
