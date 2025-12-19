@@ -112,6 +112,7 @@ const translations: Translations = {
 
     // Export
     'export_images': { ar: 'تصدير الصور', en: 'Export Images' },
+    'print_images': { ar: 'طباعة الصور', en: 'Print Images' },
     'export_as_png': { ar: 'تصدير كـ PNG', en: 'Export as PNG' },
     'export_as_pdf': { ar: 'تصدير كـ PDF', en: 'Export as PDF' },
 
