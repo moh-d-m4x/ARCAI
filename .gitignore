@@ -101,7 +101,6 @@ electron-builder.yml
 *.bat
 
 # Documentation and assets not for repo
-assets/screenshots/
 docs/
 
 # Agent artifacts
