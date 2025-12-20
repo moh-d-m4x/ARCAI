@@ -95,3 +95,14 @@ android/app/src/main/res/xml/file_paths.xml
 android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
 android/gradle/wrapper/gradle-wrapper.jar
 android/gradle/wrapper/gradle-wrapper.properties
+
+# User specific configuration and local scripts
+electron-builder.yml
+*.bat
+
+# Documentation and assets not for repo
+assets/screenshots/
+docs/
+
+# Agent artifacts
+.gemini/

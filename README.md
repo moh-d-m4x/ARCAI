@@ -1,63 +1,114 @@
 # ARCAI - Intelligent Archives
 
-ARCAI is an intelligent document management system designed to streamline archiving and retrieval processes. By leveraging advanced AI models (such as Google Gemini and OpenAI), ARCAI analyzes, categorizes, and extracts critical information from documents, organizing them into an easily searchable database.
+![ARCAI Banner](assets/screenshots/dashboard.png)
 
-## 🚀 Features
+> **Modern. Intelligent. Secure.**
+> ARCAI is a local-first document management system designed to streamline archiving through advanced AI analysis and a beautiful, dynamic interface.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-19-61dafb.svg)
+![Electron](https://img.shields.io/badge/Electron-Desktop-47848f.svg)
+![Capacitor](https://img.shields.io/badge/Capacitor-Mobile-1199ed.svg)
+![Status](https://img.shields.io/badge/status-active-success.svg)
+
+## 🚀 Overview
+
+ARCAI (Archives with AI) solves the problem of manual document entry. By integrating state-of-the-art AI models (Google Gemini, OpenAI, LLM7), it automatically extracts critical metadata from your scanned documents—dates, subjects, senders, and more—translating and formatting them into a structured, searchable database.
+
+Built with a **local-first** architecture, ARCAI ensures your sensitive data remains on your device while still offering the power of cloud-based AI analysis when needed.
+
+## ✨ Key Features
+
+### 🧠 Advanced AI Analysis
+- **Auto-Extraction**: Upload a document image, and ARCAI automatically extracts:
+  - Document Date & Reference Numbers
+  - Sender & Receiver details
+  - Subject & Content Summaries
+  - Structured Data Tables
+- **Multi-Provider Support**: Choose your preferred AI engine:
+  - **Google Gemini**: Fast, cost-effective multimodal analysis.
+  - **OpenAI (GPT-4o)**: High-precision text and vision capabilities.
+  - **LLM7.io**: Specialized compatible models.
+- **Arabic Normalization**: Smart searching capabilities that handle Arabic text variations (e.g., Alif/Hamza normalization) for accurate retrieval.
+
+### 🎨 Dynamic & Responsive UX
+- **Adaptive Design**: The interface is fully responsive, dynamically redesigning itself to fit any screen size—from large desktop monitors to mobile phone screens.
+- **Fluid Animations**: Smooth transitions and micro-interactions powered by modern CSS and React 19.
+- **Thumbnail View**: Rich visual previews of your document archives.
+
+### 🏠 Local-First & Secure
+- **IndexedDB Storage**: All your document data and images are stored locally in your browser/app via `Dexie.js`.
+- **Privacy Focused**: No external servers hold your data. You own your archives.
+
+### 📱 Cross-Platform
+- **Desktop**: Native-like experience on Windows via Electron.
+- **Mobile**: Fully optimized Android application via Capacitor.
+
+## 📸 Visual Tour
 
 ### Intelligent Dashboard
-View, manage, and organzie all your stored documents in one central hub. The dashboard provides quick access to your archives with powerful filtering options.
-![Dashboard](docs/dashboard.png)
+*Centralized hub for managing archives with powerful filtering and search.*
+![Dashboard](assets/screenshots/dashboard.png)
 
 ### AI-Powered Entry
-Upload documents and let the AI do the heavy lifting. ARCAI automatically analyzes content to fill in details, tags, and summaries, reducing manual data entry.
-![Entry Page](docs/entry_page.png)
+*Drag-and-drop interface for document analysis.*
+![Entry Page](assets/screenshots/entry_page.png)
 
 ### Comprehensive Settings
-Customize your experience by configuring AI providers (Gemini, OpenAI, LLM7), adjusting themes, and managing application preferences.
-![Settings Page](docs/settings_page.png)
-
-### Key Capabilities
-- **Smart Search**: Find documents instantly with advanced search capabilities, including Arabic text normalization.
-- **Local-First Architecture**: Your data is stored locally using Dexie.js (IndexedDB) for maximum privacy and speed.
-- **Multi-Provider AI**: seamless integration with multiple AI providers to suit your needs.
-- **Responsive Design**: optimized for both desktop and mobile viewing.
+*Configure AI providers, themes, and application preferences.*
+![Settings Page](assets/screenshots/settings_page.png)
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [React 19](https://react.dev/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Runtime**: [Electron](https://www.electronjs.org/) (for Desktop)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper)
-- **AI Integration**:
-  - Google Generative AI SDK
-  - OpenAI SDK
-- **Styling**: Modern CSS with responsive design principles
+- **Frontend**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
+- **Desktop Runtime**: [Electron](https://www.electronjs.org/)
+- **Mobile Runtime**: [Capacitor](https://capacitorjs.com/)
+- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB)
+- **Styling**: Vanilla CSS + Tailwind-inspired utility tokens for maximum performance.
 
-## 📦 Installation
+## 📦 Installation & Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ARCAI
-   ```
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/ARCAI.git
+cd ARCAI
+```
 
-3. **Run Development Server** (Web)
-   ```bash
-   npm run dev
-   ```
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-4. **Run Desktop App** (Electron)
-   ```bash
-   npm run electron
-   ```
+### 3. Run Development Server (Web)
+```bash
+npm run dev
+```
 
-## 📱 Compatibility
+### 4. Build & Run Desktop App (Electron)
+```bash
+npm run electron
+```
 
-- **Desktop**: Fully supported via Electron (Windows/macOS/Linux).
-- **Mobile**: The application is designed to be responsive and mobile-friendly.
+### 5. Build for Android
+```bash
+npm run build
+npx cap sync
+npx cap open android
+```
+
+## 🤖 AI Configuration
+To unlock the full potential of ARCAI, you need to configure an AI provider in the **Settings** page:
+
+1. Go to **Settings**.
+2. Select your provider (**Gemini**, **OpenAI**, or **LLM7**).
+3. Enter your API Key.
+4. (Optional) Select a specific model (e.g., `gemini-1.5-flash`, `gpt-4o`).
+
+*Note: Your API keys are stored locally in your browser's secure storage.*
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
