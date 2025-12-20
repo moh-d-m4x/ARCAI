@@ -3,9 +3,8 @@
 ![ARCAI Banner](assets/screenshots/dashboard.png)
 
 > **Modern. Intelligent. Secure.**
-> ARCAI is a local-first document management system designed to streamline archiving through advanced AI analysis and a beautiful, dynamic interface.
+> ARCAI is a simple, local-first document management system designed to streamline archiving through advanced AI analysis and a beautiful, dynamic interface.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Electron](https://img.shields.io/badge/Electron-Desktop-47848f.svg)
 ![Capacitor](https://img.shields.io/badge/Capacitor-Mobile-1199ed.svg)
@@ -51,7 +50,7 @@ Built with a **local-first** architecture, ARCAI ensures your sensitive data rem
 ![Dashboard](assets/screenshots/dashboard.png)
 
 ### AI-Powered Entry
-*Drag-and-drop interface for document analysis.*
+*Simple interface for document analysis or manual entry.*
 ![Entry Page](assets/screenshots/entry_page.png)
 
 ### Comprehensive Settings
@@ -109,6 +108,3 @@ To unlock the full potential of ARCAI, you need to configure an AI provider in t
 4. (Optional) Select a specific model (e.g., `gemini-1.5-flash`, `gpt-4o`).
 
 *Note: Your API keys are stored locally in your browser's secure storage.*
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
