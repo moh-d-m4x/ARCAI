@@ -8,7 +8,7 @@
 ![React](https://img.shields.io/badge/React-19-61dafb.svg)
 ![Electron](https://img.shields.io/badge/Electron-Desktop-47848f.svg)
 ![Capacitor](https://img.shields.io/badge/Capacitor-Mobile-1199ed.svg)
-![Status](https://img.shields.io/badge/status-active-success.svg)
+![Status](https://img.shields.io/badge/status-idle-yellow.svg)
 
 ## 🚀 Overview
 
