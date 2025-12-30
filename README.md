@@ -70,6 +70,7 @@ Built with a **local-first** architecture, ARCAI ensures your sensitive data rem
 ### Prerequisites
 - Node.js (v18+)
 - npm or yarn
+- .NET 6 SDK (for OCR feature on Windows) - [Download](https://dotnet.microsoft.com/download/dotnet/6.0)
 
 ### 1. Clone the Repository
 ```bash
@@ -82,12 +83,21 @@ cd ARCAI
 npm install
 ```
 
-### 3. Run Development Server (Web)
+### 3. Build OCR Tool (Windows Desktop Only)
+The OCR feature requires building the C# OCR tool:
+```bash
+cd electron-app/ocr-tool
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+cd ../..
+```
+This creates `OcrTool.exe` (~88MB) which enables text extraction from images.
+
+### 4. Run Development Server (Web)
 ```bash
 npm run dev
 ```
 
-### 4. Build & Run Desktop App (Electron)
+### 5. Build & Run Desktop App (Electron)
 ```bash
 npm run electron
 ```

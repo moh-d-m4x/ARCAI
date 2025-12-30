@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const { getScanners, performScan, cleanup: cleanupScanner } = require('./scanner.cjs');
+const { checkOcrLanguages, installOcrLanguage, uninstallOcrLanguage, performOcr } = require('./ocr.cjs');
 
 // Disable security warnings in development (CSP warning cannot be avoided with Vite HMR)
 // The packaged app will have proper CSP applied
@@ -97,6 +98,62 @@ app.whenReady().then(() => {
         } catch (error) {
             console.error('Error cancelling scan:', error);
             return { success: false, error: error.message };
+        }
+    });
+
+    // OCR IPC Handlers
+    ipcMain.handle('ocr:check-languages', async () => {
+        try {
+            const languages = await checkOcrLanguages();
+            return { success: true, languages };
+        } catch (error) {
+            console.error('Error checking OCR languages:', error);
+            return { success: false, error: error.message, languages: { ar: false, en: false } };
+        }
+    });
+
+    ipcMain.handle('ocr:install-language', async (event, langCode) => {
+        try {
+            // Progress callback to send updates to renderer
+            const onProgress = (percent, status) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('ocr:install-progress', { percent, status, langCode });
+                }
+            };
+
+            const result = await installOcrLanguage(langCode, onProgress);
+            return { success: result };
+        } catch (error) {
+            console.error('Error installing OCR language:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('ocr:uninstall-language', async (event, langCode) => {
+        try {
+            const onProgress = (percent, status) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('ocr:uninstall-progress', { percent, status, langCode });
+                }
+            };
+
+            const result = await uninstallOcrLanguage(langCode, onProgress);
+            return { success: result };
+        } catch (error) {
+            console.error('Error uninstalling OCR language:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('ocr:extract-text', async (event, { imageBase64, language }) => {
+        try {
+            // Convert base64 to buffer
+            const imageBuffer = Buffer.from(imageBase64, 'base64');
+            const text = await performOcr(imageBuffer, language);
+            return { success: true, text };
+        } catch (error) {
+            console.error('Error performing OCR:', error);
+            return { success: false, error: error.message, text: '' };
         }
     });
 

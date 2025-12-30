@@ -5,7 +5,280 @@ import { useMobileMenu } from '../contexts/MobileMenuContext';
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { ImportPreviewModal } from '../components/ImportPreviewModal';
 import { MobileHeader } from '../components/MobileHeader';
+import { Download, Trash2, Check, X, Loader2 } from 'lucide-react';
 import type { AIProvider } from '../types';
+
+// Type for electron API
+interface ElectronAPI {
+    isElectron: boolean;
+    checkOcrLanguages: () => Promise<{ success: boolean; languages: { ar: boolean; en: boolean } }>;
+    installOcrLanguage: (langCode: string) => Promise<{ success: boolean; error?: string }>;
+    uninstallOcrLanguage: (langCode: string) => Promise<{ success: boolean; error?: string }>;
+    onOcrInstallProgress: (callback: (data: { percent: number; status: string; langCode: string }) => void) => void;
+    removeOcrInstallProgressListener: () => void;
+    onOcrUninstallProgress: (callback: (data: { percent: number; status: string; langCode: string }) => void) => void;
+    removeOcrUninstallProgressListener: () => void;
+}
+
+// OCR Settings Section Component
+const OcrSettingsSection: React.FC<{ t: (key: string) => string }> = ({ t }) => {
+    const [ocrLanguages, setOcrLanguages] = useState<{ ar: boolean; en: boolean }>({ ar: false, en: false });
+    const [loading, setLoading] = useState(true);
+    const [installing, setInstalling] = useState<string | null>(null);
+    const [uninstalling, setUninstalling] = useState<string | null>(null);
+    const [progress, setProgress] = useState<{ percent: number; status: string } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const electronAPI = (window as unknown as { electronAPI?: ElectronAPI }).electronAPI;
+
+    // Check OCR languages on mount
+    useEffect(() => {
+        checkLanguages();
+    }, []);
+
+    // Set up progress listeners
+    useEffect(() => {
+        if (!electronAPI) return;
+
+        // Map backend status to translation keys
+        const translateStatus = (status: string) => {
+            if (status.includes('admin privileges')) return t('ocr_requesting_admin') || status;
+            if (status.includes('Verifying')) return t('ocr_verifying') || status;
+            if (status.includes('Downloading') || status.includes('Windows Update')) {
+                return t('ocr_downloading') || status;
+            }
+            return status;
+        };
+
+        electronAPI.onOcrInstallProgress((data) => {
+            setProgress({ percent: data.percent, status: translateStatus(data.status) });
+        });
+
+        electronAPI.onOcrUninstallProgress((data) => {
+            setProgress({ percent: data.percent, status: translateStatus(data.status) });
+        });
+
+        return () => {
+            electronAPI.removeOcrInstallProgressListener();
+            electronAPI.removeOcrUninstallProgressListener();
+        };
+    }, [electronAPI, t]);
+
+    const checkLanguages = async () => {
+        if (!electronAPI) return;
+        setLoading(true);
+        try {
+            const result = await electronAPI.checkOcrLanguages();
+            if (result.success) {
+                setOcrLanguages(result.languages);
+            }
+        } catch (err) {
+            console.error('Error checking OCR languages:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInstall = async (langCode: 'ar' | 'en') => {
+        if (!electronAPI) return;
+        setInstalling(langCode);
+        setError(null);
+        setProgress({ percent: 0, status: t('ocr_installing') || 'Installing...' });
+
+        try {
+            const result = await electronAPI.installOcrLanguage(langCode);
+            if (result.success) {
+                await checkLanguages();
+            } else {
+                // Check for cancelled/failed message
+                const errorMsg = result.error || '';
+                if (errorMsg.includes('cancelled') || errorMsg.includes('failed')) {
+                    setError(t('ocr_cancelled') || errorMsg);
+                } else {
+                    setError(errorMsg || t('ocr_install_failed') || 'Installation failed');
+                }
+            }
+        } catch (err: any) {
+            const errorMsg = err.message || '';
+            if (errorMsg.includes('cancelled') || errorMsg.includes('failed')) {
+                setError(t('ocr_cancelled') || errorMsg);
+            } else {
+                setError(errorMsg || t('ocr_install_failed') || 'Installation failed');
+            }
+        } finally {
+            setInstalling(null);
+            setProgress(null);
+        }
+    };
+
+    const handleUninstall = async (langCode: 'ar' | 'en') => {
+        if (!electronAPI) return;
+        setUninstalling(langCode);
+        setError(null);
+        setProgress({ percent: 0, status: t('ocr_uninstalling') || 'Uninstalling...' });
+
+        try {
+            const result = await electronAPI.uninstallOcrLanguage(langCode);
+            if (result.success) {
+                await checkLanguages();
+            } else {
+                setError(result.error || 'Uninstall failed');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Uninstall failed');
+        } finally {
+            setUninstalling(null);
+            setProgress(null);
+        }
+    };
+
+    const renderLanguageRow = (langCode: 'ar' | 'en', langName: string, isInstalled: boolean) => {
+        const isProcessing = installing === langCode || uninstalling === langCode;
+
+        return (
+            <div key={langCode} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.75rem 1rem',
+                backgroundColor: 'var(--glass-bg)',
+                borderRadius: '8px',
+                marginBottom: '0.5rem',
+                border: '1px solid var(--glass-border)'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 500 }}>{langName}</span>
+                    {isInstalled ? (
+                        <span style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            color: '#22c55e',
+                            backgroundColor: '#dcfce7',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '9999px'
+                        }}>
+                            <Check size={12} />
+                            {t('ocr_installed') || 'Installed'}
+                        </span>
+                    ) : (
+                        <span style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            color: '#9ca3af',
+                            backgroundColor: 'var(--glass-bg)',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '9999px'
+                        }}>
+                            <X size={12} />
+                            {t('ocr_not_installed') || 'Not Installed'}
+                        </span>
+                    )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {isProcessing ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span style={{ fontSize: '0.75rem' }}>{progress?.status}</span>
+                        </div>
+                    ) : isInstalled ? (
+                        <button
+                            onClick={() => handleUninstall(langCode)}
+                            className="btn"
+                            style={{
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.75rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fca5a5',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                            }}
+                        >
+                            <Trash2 size={14} />
+                            {t('ocr_uninstall') || 'Uninstall'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => handleInstall(langCode)}
+                            className="btn btn-primary"
+                            style={{
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                            }}
+                        >
+                            <Download size={14} />
+                            {t('ocr_install') || 'Install'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="glass-panel section">
+                <h2 className="section-title">{t('ocr_settings') || 'OCR Settings'}</h2>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                    <Loader2 size={24} className="animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="glass-panel section">
+            <h2 className="section-title">{t('ocr_settings') || 'OCR Settings'}</h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                {t('ocr_settings_desc') || 'Manage OCR language packs for text extraction from images.'}
+            </p>
+
+            {renderLanguageRow('ar', t('arabic') || 'Arabic', ocrLanguages.ar)}
+            {renderLanguageRow('en', t('english') || 'English', ocrLanguages.en)}
+
+            {error && (
+                <div style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#fee2e2',
+                    color: '#dc2626',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem'
+                }}>
+                    {error}
+                </div>
+            )}
+
+            {progress && (
+                <div style={{ marginTop: '1rem' }}>
+                    <div style={{
+                        height: '4px',
+                        backgroundColor: 'var(--glass-border)',
+                        borderRadius: '2px',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            height: '100%',
+                            width: `${progress.percent}%`,
+                            backgroundColor: 'var(--accent-color)',
+                            transition: 'width 0.3s ease'
+                        }} />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 export const Settings: React.FC = () => {
     const { language, setLanguage, t } = useLanguage();
@@ -158,6 +431,11 @@ export const Settings: React.FC = () => {
                     </select>
                 </div>
             </div>
+
+            {/* OCR Settings - Only shown on Electron/PC */}
+            {(window as unknown as { electronAPI?: { isElectron: boolean } }).electronAPI?.isElectron && (
+                <OcrSettingsSection t={t} />
+            )}
 
             <div className="glass-panel section">
                 <h2 className="section-title">{t('theme')}</h2>

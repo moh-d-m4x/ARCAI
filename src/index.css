@@ -541,6 +541,13 @@ textarea:focus {
   border-color: var(--accent-color);
 }
 
+.upload-area.drag-over,
+.ocr-image-panel.drag-over {
+  border-color: var(--accent-color);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
 .upload-placeholder {
   display: flex;
   flex-direction: column;
@@ -2719,4 +2726,406 @@ textarea:focus {
   to {
     transform: translateX(0);
   }
+}
+
+/* ============================================
+   OCR Expanded View
+   ============================================ */
+
+.ocr-expanded-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ocr-expanded-overlay.animate-enter {
+  animation: ocrFadeIn 0.3s ease-out forwards;
+}
+
+.ocr-expanded-overlay.animate-exit {
+  animation: ocrFadeOut 0.25s ease-in forwards;
+}
+
+@keyframes ocrFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ocrFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.ocr-expanded-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+.ocr-close-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ocr-close-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+.ocr-expanded-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ocr-expanded-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow: hidden;
+  min-height: 0;
+}
+
+[dir="rtl"] .ocr-expanded-content {
+  grid-template-columns: 1.2fr 1fr;
+}
+
+.ocr-fields-panel {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--glass-border);
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ocr-fields-panel .section-title {
+  margin-bottom: 1.5rem;
+}
+
+.ocr-image-panel {
+  background: #000;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ocr-image-panel .carousel-container {
+  height: 100%;
+  min-height: 100%;
+}
+
+.ocr-image-panel .carousel-image {
+  max-height: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Mobile responsive */
+@media (max-width: 900px) {
+  .ocr-expanded-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  [dir="rtl"] .ocr-expanded-content {
+    grid-template-columns: 1fr;
+  }
+
+  .ocr-fields-panel {
+    order: 2;
+  }
+
+  .ocr-image-panel {
+    order: 1;
+  }
+}
+
+/* OCR Field with Select Button */
+.ocr-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.ocr-field-wrapper input,
+.ocr-field-wrapper select,
+.ocr-field-wrapper textarea {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Add padding on the side where the button will be */
+[dir="rtl"] .ocr-field-wrapper input,
+[dir="rtl"] .ocr-field-wrapper textarea {
+  padding-left: 2.5rem;
+}
+
+[dir="ltr"] .ocr-field-wrapper input,
+[dir="ltr"] .ocr-field-wrapper textarea {
+  padding-right: 2.5rem;
+}
+
+.ocr-select-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+[dir="rtl"] .ocr-select-btn {
+  left: 0.5rem;
+  right: auto;
+}
+
+[dir="ltr"] .ocr-select-btn {
+  right: 0.5rem;
+  left: auto;
+}
+
+.ocr-select-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  opacity: 1;
+}
+
+.ocr-select-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* For textareas, position at top */
+.ocr-field-wrapper:has(textarea) .ocr-select-btn {
+  top: 0.75rem;
+  transform: none;
+}
+
+/* ============================================
+   Screen Capture Overlay
+   ============================================ */
+
+.screen-capture-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.screen-capture-overlay.animate-enter {
+  animation: captureFadeIn 0.3s ease-out forwards;
+}
+
+.screen-capture-overlay.animate-exit {
+  animation: captureFadeOut 0.25s ease-in forwards;
+}
+
+@keyframes captureFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes captureFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Toolbar */
+.capture-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  gap: 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+.capture-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.capture-close-btn:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+/* Center section of toolbar */
+.capture-toolbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.capture-mode-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.capture-mode-selector label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.capture-mode-selector select {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Zoom Controls */
+.capture-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.capture-zoom-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.capture-zoom-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
+}
+
+.capture-zoom-level {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  min-width: 45px;
+  text-align: center;
+}
+
+/* Image Container - full height since no footer */
+.capture-image-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.capture-image-wrapper {
+  position: relative;
+  display: inline-block;
+  transition: transform 0.1s ease-out;
+}
+
+.capture-image {
+  display: block;
+  max-width: 90vw;
+  max-height: calc(100vh - 80px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.capture-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  border-radius: 8px;
 }

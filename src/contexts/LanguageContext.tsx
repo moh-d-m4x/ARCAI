@@ -39,7 +39,21 @@ const translations: Translations = {
     'models_loading': { ar: 'جاري تحميل النماذج...', en: 'Loading models...' },
     'ai_settings_title': { ar: 'إعدادات الذكاء الاصطناعي', en: 'AI Settings' },
 
-    // Database Settings
+    // OCR Settings
+    'ocr_settings': { ar: 'إعدادات التعرف على النص', en: 'OCR Settings' },
+    'ocr_settings_desc': { ar: 'إدارة حزم اللغات للتعرف على النص من الصور.', en: 'Manage OCR language packs for text extraction from images.' },
+    'ocr_installed': { ar: 'مثبت', en: 'Installed' },
+    'ocr_not_installed': { ar: 'غير مثبت', en: 'Not Installed' },
+    'ocr_install': { ar: 'تثبيت', en: 'Install' },
+    'ocr_uninstall': { ar: 'إلغاء التثبيت', en: 'Uninstall' },
+    'ocr_uninstalling': { ar: 'جاري إلغاء التثبيت...', en: 'Uninstalling...' },
+    'ocr_requesting_admin': { ar: 'طلب صلاحيات المسؤول...', en: 'Requesting admin privileges...' },
+    'ocr_verifying': { ar: 'جاري التحقق...', en: 'Verifying...' },
+    'ocr_timeout': { ar: 'انتهت المهلة. يرجى التحقق من وجود مربع حوار المسؤول في انتظار ردك.', en: 'Timed out. Please check if a Windows admin dialog is waiting for your response.' },
+    'ocr_downloading': { ar: 'جاري التنزيل من Windows Update (قد يستغرق 2-5 دقائق)...', en: 'Downloading from Windows Update (may take 2-5 minutes)...' },
+    'ocr_downloading_percent': { ar: 'جاري التنزيل من Windows Update...', en: 'Downloading from Windows Update...' },
+    'ocr_cancelled': { ar: 'تم إلغاء التثبيت أو فشل', en: 'Installation was cancelled or failed' },
+
     'db_settings_title': { ar: 'إعدادات قاعدة البيانات', en: 'Database Settings' },
     'export_db': { ar: 'تصدير', en: 'Export' },
     'import_db': { ar: 'استيراد', en: 'Import' },
@@ -79,7 +93,9 @@ const translations: Translations = {
     'change_image': { ar: 'تغيير الصورة', en: 'Change Image' },
     'click_to_upload': { ar: 'اضغط هنا لاختيار مستند', en: 'Click to upload document' },
     'analyzing': { ar: 'تحليل...', en: 'Analyzing...' },
-    'analyze_btn': { ar: 'تحليل', en: 'Analyze' },
+    'analyze_btn': { ar: 'تحليل بالذكاء الاصطناعي', en: 'Analyze with AI' },
+    'ocr_extract_btn': { ar: 'استخراج النص', en: 'Extract Text (OCR)' },
+    'ocr_extracting': { ar: 'جاري استخراج النص...', en: 'Extracting text...' },
     'save_doc_btn': { ar: 'حفظ المذكرة', en: 'Save Document' },
     'doc_details_title': { ar: 'تفاصيل المذكرة', en: 'Document Details' },
     'analysis_failed_error': { ar: 'فشل التحليل. تحقق من وحدة التحكم للتفاصيل. تأكد من ضبط مفتاح API.', en: 'Analysis failed. Check console for details. Ensure API Key is set.' },
@@ -149,6 +165,31 @@ const translations: Translations = {
     // Page Size
     'page_size': { ar: 'حجم الورق', en: 'Page Size' },
     'page_size_auto': { ar: 'تلقائي', en: 'Auto Detect' },
+
+    // Screen Capture
+    'capture_mode_label': { ar: 'وضع التحديد:', en: 'Selection Mode:' },
+    'capture_mode_rectangle': { ar: 'مستطيل', en: 'Rectangle' },
+    'capture_mode_freeform': { ar: 'حر', en: 'Freeform' },
+    'capturing_for': { ar: 'التقاط لـ:', en: 'Capturing for:' },
+    'capture_instructions': { ar: 'انقر واسحب لتحديد منطقة. أفلت لالتقاط.', en: 'Click and drag to select an area. Release to capture.' },
+
+    // OCR
+    'ocr_lang_missing_ar': { ar: 'حزمة اللغة العربية غير مثبتة', en: 'Arabic OCR not installed' },
+    'ocr_lang_missing_en': { ar: 'حزمة اللغة الإنجليزية غير مثبتة', en: 'English OCR not installed' },
+    'ocr_install_prompt': { ar: 'هل تريد تثبيتها الآن؟', en: 'Would you like to install it now?' },
+    'ocr_installing': { ar: 'جاري تثبيت حزمة اللغة...', en: 'Installing language pack...' },
+    'ocr_install_success': { ar: 'تم تثبيت حزمة اللغة بنجاح', en: 'Language pack installed successfully' },
+    'ocr_install_failed': { ar: 'فشل تثبيت حزمة اللغة', en: 'Language pack installation failed' },
+    'ocr_pc_only': { ar: 'استخراج النص متاح فقط على الكمبيوتر', en: 'Text extraction is only available on PC' },
+    'ocr_extracting_text': { ar: 'جاري استخراج النص...', en: 'Extracting text...' },
+    'ocr_no_text_found': { ar: 'لم يتم العثور على نص', en: 'No text found' },
+    'ocr_success': { ar: 'تم استخراج النص بنجاح', en: 'Text extracted successfully' },
+    'ocr_install_btn': { ar: 'تثبيت', en: 'Install' },
+    'ocr_cancel_btn': { ar: 'إلغاء', en: 'Cancel' },
+    'ocr_lang_missing': { ar: 'حزمة اللغة غير مثبتة', en: 'Language pack not installed' },
+    'ocr_go_to_settings': { ar: 'يرجى تثبيتها من الإعدادات', en: 'Please install it from Settings' },
+    'ocr_failed': { ar: 'فشل استخراج النص', en: 'Text extraction failed' },
+    'ocr_error': { ar: 'خطأ في استخراج النص', en: 'Text extraction error' },
 };
 
 interface LanguageContextType {

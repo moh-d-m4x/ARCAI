@@ -40,6 +40,14 @@ android/local.properties
 # Bundled scanner tool (if downloaded separately)
 electron-app/naps2_v7/
 
+# C# OCR tool build outputs (regenerate with: dotnet publish)
+electron-app/ocr-tool/bin/
+electron-app/ocr-tool/obj/
+electron-app/ocr-tool/publish/
+
+# Debug files
+debug_captures/
+
 # Capacitor (mobile builds)
 capacitor.config.ts
 android/.gitignore
