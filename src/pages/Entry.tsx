@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import { Upload, Save, Loader2, Sparkles, ScanLine } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Save, Loader2, Sparkles, Printer, FolderOpen, Camera, X } from 'lucide-react';
 import { analyzeDocumentImage } from '../services/ai';
 import { db } from '../db';
 import type { ArcaiDocument } from '../types';
@@ -36,16 +35,18 @@ export const Entry: React.FC = () => {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
+    // Mobile upload picker state
+    const [isMobilePickerOpen, setIsMobilePickerOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+
+    // Detect if user is on mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     // Screen capture state
     const [captureFieldName, setCaptureFieldName] = useState<string | null>(null);
 
-    // OCR install modal state
-    const [ocrInstallModal, setOcrInstallModal] = useState<{
-        isOpen: boolean;
-        langCode: string;
-        pendingImageBlob: Blob | null;
-        pendingFieldName: string;
-    }>({ isOpen: false, langCode: '', pendingImageBlob: null, pendingFieldName: '' });
+
 
     // Drag and drop handlers
     const handleDragOver = (e: React.DragEvent) => {
@@ -104,6 +105,23 @@ export const Entry: React.FC = () => {
                 }));
             }
         }
+    };
+
+    // Mobile picker handlers
+    const handleMobileUploadClick = () => {
+        if (isMobile) {
+            setIsMobilePickerOpen(true);
+        }
+    };
+
+    const handleFilePickerChoice = () => {
+        setIsMobilePickerOpen(false);
+        fileInputRef.current?.click();
+    };
+
+    const handleCameraChoice = () => {
+        setIsMobilePickerOpen(false);
+        cameraInputRef.current?.click();
     };
 
     const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,12 +216,10 @@ export const Entry: React.FC = () => {
     };
 
     // Screen capture handlers
-    const openCapture = async (fieldName: string) => {
+    const openCapture = (fieldName: string) => {
         // Check if we're in Electron (PC)
         const electronAPI = (window as unknown as {
-            electronAPI?: {
-                checkOcrLanguages: () => Promise<{ success: boolean; languages: { ar: boolean; en: boolean } }>;
-            }
+            electronAPI?: { isElectron: boolean }
         }).electronAPI;
 
         if (!electronAPI) {
@@ -211,30 +227,14 @@ export const Entry: React.FC = () => {
             return;
         }
 
-        try {
-            // Check if Arabic OCR is installed before opening capture
-            const langCheck = await electronAPI.checkOcrLanguages();
-
-            if (!langCheck.success || !langCheck.languages.ar) {
-                // Arabic OCR not installed - show error message
-                showNotification(`${t('ocr_lang_missing')}: ${t('arabic')}. ${t('ocr_go_to_settings')}`, 'error');
-                return;
-            }
-
-            // OCR is available, open capture overlay
-            setCaptureFieldName(fieldName);
-        } catch (error) {
-            console.error('Error checking OCR languages:', error);
-            showNotification(`${t('ocr_error')}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        }
+        // Open capture overlay
+        setCaptureFieldName(fieldName);
     };
 
     const handleCapture = async (imageBlob: Blob, fieldName: string) => {
         // Check if we're in Electron (PC)
         const electronAPI = (window as unknown as {
             electronAPI?: {
-                checkOcrLanguages: () => Promise<{ success: boolean; languages: { ar: boolean; en: boolean } }>;
-                installOcrLanguage: (langCode: string) => Promise<{ success: boolean; error?: string }>;
                 extractText: (imageBase64: string, language: string) => Promise<{ success: boolean; text: string; error?: string }>;
             }
         }).electronAPI;
@@ -245,23 +245,6 @@ export const Entry: React.FC = () => {
         }
 
         try {
-            // Check if OCR languages are installed
-            const langCheck = await electronAPI.checkOcrLanguages();
-
-            if (!langCheck.success || (!langCheck.languages.ar && !langCheck.languages.en)) {
-                // No OCR languages installed - show modal to prompt install
-                const missingLang = !langCheck.languages.ar ? 'ar' : 'en';
-
-                // Store pending data and show modal
-                setOcrInstallModal({
-                    isOpen: true,
-                    langCode: missingLang,
-                    pendingImageBlob: imageBlob,
-                    pendingFieldName: fieldName
-                });
-                return; // Exit - will continue after user confirms in modal
-            }
-
             // Convert blob to base64
             const reader = new FileReader();
             const base64Promise = new Promise<string>((resolve) => {
@@ -276,9 +259,8 @@ export const Entry: React.FC = () => {
             // Show extracting notification
             showNotification(t('ocr_extracting_text'), 'info');
 
-            // Perform OCR - try Arabic first since this is the primary use case
-            const language = langCheck.languages.ar ? 'ar' : 'en';
-            const ocrResult = await electronAPI.extractText(imageBase64, language);
+            // Perform OCR - use Arabic as default
+            const ocrResult = await electronAPI.extractText(imageBase64, 'ar');
 
             if (ocrResult.success && ocrResult.text) {
                 // Set the extracted text to the target field
@@ -290,120 +272,17 @@ export const Entry: React.FC = () => {
             } else if (ocrResult.success && !ocrResult.text) {
                 showNotification(t('ocr_no_text_found'), 'warning');
             } else {
-                // Check if error is about language not installed
-                const errorMsg = ocrResult.error || '';
-                if (errorMsg.includes('OCR_LANG_NOT_INSTALLED')) {
-                    const langName = errorMsg.includes('Arabic') ? t('arabic') : t('english');
-                    showNotification(`${t('ocr_lang_missing')}: ${langName}. ${t('ocr_go_to_settings')}`, 'error');
-                } else {
-                    showNotification(`${t('ocr_failed')}: ${errorMsg}`, 'error');
-                }
+                showNotification(`${t('ocr_failed')}: ${ocrResult.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
             console.error('OCR error:', error);
-            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            // Check if error is about language not installed
-            if (errorMsg.includes('OCR_LANG_NOT_INSTALLED')) {
-                const langName = errorMsg.includes('Arabic') ? t('arabic') : t('english');
-                showNotification(`${t('ocr_lang_missing')}: ${langName}. ${t('ocr_go_to_settings')}`, 'error');
-            } else {
-                showNotification(`${t('ocr_error')}: ${errorMsg}`, 'error');
-            }
+            showNotification(`${t('ocr_error')}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
         }
     };
 
-    // Handler for OCR language install confirmation
-    const handleOcrInstallConfirm = async () => {
-        const { langCode, pendingImageBlob, pendingFieldName } = ocrInstallModal;
-        setOcrInstallModal({ isOpen: false, langCode: '', pendingImageBlob: null, pendingFieldName: '' });
-
-        const electronAPI = (window as unknown as {
-            electronAPI?: {
-                installOcrLanguage: (langCode: string) => Promise<{ success: boolean; error?: string }>;
-                extractText: (imageBase64: string, language: string) => Promise<{ success: boolean; text: string; error?: string }>;
-            }
-        }).electronAPI;
-
-        if (!electronAPI || !pendingImageBlob) return;
-
-        showNotification(t('ocr_installing'), 'info');
-
-        try {
-            const installResult = await electronAPI.installOcrLanguage(langCode);
-
-            if (installResult.success) {
-                showNotification(t('ocr_install_success'), 'success');
-
-                // Now perform OCR with the pending image
-                const reader = new FileReader();
-                const base64Promise = new Promise<string>((resolve) => {
-                    reader.onloadend = () => {
-                        const base64 = (reader.result as string).split(',')[1];
-                        resolve(base64);
-                    };
-                });
-                reader.readAsDataURL(pendingImageBlob);
-                const imageBase64 = await base64Promise;
-
-                showNotification(t('ocr_extracting_text'), 'info');
-                const ocrResult = await electronAPI.extractText(imageBase64, langCode);
-
-                if (ocrResult.success && ocrResult.text) {
-                    setFormData(prev => ({
-                        ...prev,
-                        [pendingFieldName]: ocrResult.text.trim()
-                    }));
-                    showNotification(t('ocr_success'), 'success');
-                } else if (ocrResult.success && !ocrResult.text) {
-                    showNotification(t('ocr_no_text_found'), 'warning');
-                } else {
-                    showNotification(`${t('ocr_failed')}: ${ocrResult.error}`, 'error');
-                }
-            } else {
-                showNotification(`${t('ocr_install_failed')}: ${installResult.error}`, 'error');
-            }
-        } catch (error) {
-            console.error('OCR install error:', error);
-            showNotification(`${t('ocr_install_failed')}: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-        }
-    };
 
     return (
         <div className="page-container animate-fade-in">
-            {/* OCR Install Language Modal */}
-            {ocrInstallModal.isOpen && ReactDOM.createPortal(
-                <div className="image-viewer-overlay flex items-center justify-center animate-fade-in" style={{ zIndex: 10000 }}>
-                    <div className="absolute inset-0" onClick={() => setOcrInstallModal({ isOpen: false, langCode: '', pendingImageBlob: null, pendingFieldName: '' })}></div>
-                    <div className="delete-modal animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="delete-modal-icon bg-blue-500/20 text-blue-500">
-                            <ScanLine size={32} />
-                        </div>
-                        <h3 className="delete-modal-title">
-                            {ocrInstallModal.langCode === 'ar' ? t('ocr_lang_missing_ar') : t('ocr_lang_missing_en')}
-                        </h3>
-                        <p className="delete-modal-text">
-                            {t('ocr_install_prompt')}
-                        </p>
-                        <div className="delete-modal-actions">
-                            <button
-                                className="btn btn-outline border-gray-300 text-gray-500 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-                                onClick={() => setOcrInstallModal({ isOpen: false, langCode: '', pendingImageBlob: null, pendingFieldName: '' })}
-                            >
-                                {t('ocr_cancel_btn')}
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleOcrInstallConfirm}
-                            >
-                                {t('ocr_install_btn')}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
-
-            {/* Mobile Header with hamburger */}
             <MobileHeader title={t('new_entry_title')} onMenuClick={toggleMenu} />
 
             <h1 className="page-title desktop-only">{t('new_entry_title')}</h1>
@@ -450,11 +329,44 @@ export const Entry: React.FC = () => {
                                 />
                             </>
                         ) : (
-                            <label className="upload-placeholder">
-                                <input type="file" accept="image/*" multiple onChange={handleFileChange} hidden />
-                                <Upload size={48} className="text-gray-400 mb-2" />
-                                <span>{t('click_to_upload')}</span>
-                            </label>
+                            <>
+                                {/* Hidden file inputs for mobile */}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleFileChange}
+                                    hidden
+                                    ref={fileInputRef}
+                                />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handleFileChange}
+                                    hidden
+                                    ref={cameraInputRef}
+                                />
+
+                                {isMobile ? (
+                                    <div
+                                        className="upload-placeholder"
+                                        onClick={handleMobileUploadClick}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleMobileUploadClick()}
+                                    >
+                                        <Upload size={48} className="text-gray-400 mb-2" />
+                                        <span>{t('click_to_upload')}</span>
+                                    </div>
+                                ) : (
+                                    <label className="upload-placeholder">
+                                        <input type="file" accept="image/*" multiple onChange={handleFileChange} hidden />
+                                        <Upload size={48} className="text-gray-400 mb-2" />
+                                        <span>{t('click_to_upload')}</span>
+                                    </label>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -483,7 +395,7 @@ export const Entry: React.FC = () => {
                         onClick={() => setIsScannerOpen(true)}
                         className="btn btn-outline w-full mt-4 flex items-center justify-center gap-2"
                     >
-                        <ScanLine size={20} /> {t('scanner_btn')}
+                        <Printer size={20} /> {t('scanner_btn')}
                     </button>
 
                     <button onClick={handleSave} className="btn btn-primary btn-large mt-4 w-full">
@@ -671,6 +583,45 @@ export const Entry: React.FC = () => {
                 fieldName={captureFieldName || ''}
                 imageFile={files[0] || null}
             />
+
+            {/* Mobile Upload Picker Modal */}
+            {isMobilePickerOpen && (
+                <div
+                    className="mobile-picker-overlay"
+                    onClick={() => setIsMobilePickerOpen(false)}
+                >
+                    <div
+                        className="mobile-picker-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="mobile-picker-header">
+                            <h3>{t('choose_upload_method')}</h3>
+                            <button
+                                className="mobile-picker-close"
+                                onClick={() => setIsMobilePickerOpen(false)}
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="mobile-picker-options">
+                            <button
+                                className="mobile-picker-option"
+                                onClick={handleFilePickerChoice}
+                            >
+                                <FolderOpen size={32} />
+                                <span>{t('choose_from_files')}</span>
+                            </button>
+                            <button
+                                className="mobile-picker-option"
+                                onClick={handleCameraChoice}
+                            >
+                                <Camera size={32} />
+                                <span>{t('take_photo')}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

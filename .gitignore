@@ -14,6 +14,7 @@ node_modules/
 dist/
 dist-ssr/
 releases/
+release/
 
 # Local environment
 local_node/
@@ -30,17 +31,17 @@ local_node/
 *.sln
 *.sw?
 
-# Android generated files
+# Android generated files - Keep source, ignore build
 android/.gradle/
 android/build/
 android/app/build/
 android/capacitor-cordova-android-plugins/
 android/local.properties
 
-# Bundled scanner tool (if downloaded separately)
+# Bundled scanner tool
 electron-app/naps2_v7/
 
-# C# OCR tool build outputs (regenerate with: dotnet publish)
+# C# OCR tool build outputs
 electron-app/ocr-tool/bin/
 electron-app/ocr-tool/obj/
 electron-app/ocr-tool/publish/
@@ -50,12 +51,23 @@ debug_captures/
 
 # Capacitor (mobile builds)
 capacitor.config.ts
+
+# User specific scripts
+*.bat
+!build_apk.bat
+!build_installer.bat
+!run.bat
+
+# Documentation and assets not for repo
+docs/
+
+# Agent artifacts
+.gemini/
 android/.gitignore
 android/build.gradle
 android/capacitor.settings.gradle
 android/gradle.properties
 android/gradlew
-android/gradlew.bat
 android/settings.gradle
 android/variables.gradle
 android/app/.gitignore
@@ -103,13 +115,3 @@ android/app/src/main/res/xml/file_paths.xml
 android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java
 android/gradle/wrapper/gradle-wrapper.jar
 android/gradle/wrapper/gradle-wrapper.properties
-
-# User specific configuration and local scripts
-electron-builder.yml
-*.bat
-
-# Documentation and assets not for repo
-docs/
-
-# Agent artifacts
-.gemini/

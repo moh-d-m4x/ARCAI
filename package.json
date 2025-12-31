@@ -1,7 +1,7 @@
 {
   "name": "arcai",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "electron-app/main.cjs",
   "scripts": {
@@ -17,6 +17,7 @@
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@google/generative-ai": "^0.24.1",
+    "7zip-bin": "^5.2.0",
     "astral-regex": "^2.0.0",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",

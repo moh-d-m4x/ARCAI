@@ -6,6 +6,10 @@ import { Save, RotateCcw, Trash2 } from 'lucide-react';
 
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { NotificationModal } from './NotificationModal';
+import { ScreenCaptureOverlay } from './ScreenCaptureOverlay';
+import { ToastNotification } from './ToastNotification';
+import { OcrFieldWrapper } from './OcrFieldWrapper';
+import { useOcr } from '../hooks/useOcr';
 
 interface DocumentInlineEditProps {
     doc: ArcaiDocument;
@@ -21,6 +25,21 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
         message: string;
         type: 'info' | 'success' | 'warning' | 'error';
     }>({ isOpen: false, message: '', type: 'info' });
+
+    // OCR state using shared hook
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
+        setToast({ message, type });
+    };
+
+    const { captureFieldName, openCapture, handleCapture, closeCapture, isElectron } = useOcr({
+        onTextExtracted: (fieldName, text) => {
+            setFormData(prev => ({ ...prev, [fieldName]: text }));
+            setChangedFields(prev => new Set(prev).add(fieldName));
+        },
+        showNotification: showToast
+    });
 
     useEffect(() => {
         // Initialize form data from doc
@@ -106,95 +125,112 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
 
                 <div className="form-group">
                     <label>{t('ref_number')}</label>
-                    <input
-                        name="reference_number"
-                        value={formData.reference_number || ''}
-                        onChange={handleChange}
-                        className={getInputClass('reference_number')}
-                    />
+                    <OcrFieldWrapper fieldName="reference_number" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="reference_number"
+                            value={formData.reference_number || ''}
+                            onChange={handleChange}
+                            className={getInputClass('reference_number')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('doc_date')}</label>
-                    <input
-                        name="document_date"
-                        value={formData.document_date || ''}
-                        onChange={handleChange}
-
-                        className={getInputClass('document_date')}
-                    />
+                    <OcrFieldWrapper fieldName="document_date" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="document_date"
+                            value={formData.document_date || ''}
+                            onChange={handleChange}
+                            className={getInputClass('document_date')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('attachments_label')}</label>
-                    <input
-                        name="attachments_desc"
-                        value={formData.attachments_desc || ''}
-                        onChange={handleChange}
-                        className={getInputClass('attachments_desc')}
-                    />
+                    <OcrFieldWrapper fieldName="attachments_desc" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="attachments_desc"
+                            value={formData.attachments_desc || ''}
+                            onChange={handleChange}
+                            className={getInputClass('attachments_desc')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('sender_label')}</label>
-                    <input
-                        name="sender"
-                        value={typeof formData.sender === 'object' ? (formData.sender as any)?.organization || '' : formData.sender || ''}
-                        onChange={handleChange}
-                        className={getInputClass('sender')}
-                    />
+                    <OcrFieldWrapper fieldName="sender" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="sender"
+                            value={typeof formData.sender === 'object' ? (formData.sender as any)?.organization || '' : formData.sender || ''}
+                            onChange={handleChange}
+                            className={getInputClass('sender')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('receiver_label')}</label>
-                    <input
-                        name="receiver"
-                        value={typeof formData.receiver === 'object' ? (formData.receiver as any)?.organization || '' : formData.receiver || ''}
-                        onChange={handleChange}
-                        className={getInputClass('receiver')}
-                    />
+                    <OcrFieldWrapper fieldName="receiver" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="receiver"
+                            value={typeof formData.receiver === 'object' ? (formData.receiver as any)?.organization || '' : formData.receiver || ''}
+                            onChange={handleChange}
+                            className={getInputClass('receiver')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('cc_label')}</label>
-                    <input
-                        name="cc_distribution"
-                        value={formData.cc_distribution || ''}
-                        onChange={handleChange}
-                        className={getInputClass('cc_distribution')}
-                    />
+                    <OcrFieldWrapper fieldName="cc_distribution" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="cc_distribution"
+                            value={formData.cc_distribution || ''}
+                            onChange={handleChange}
+                            className={getInputClass('cc_distribution')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group">
                     <label>{t('signatory_label')}</label>
-                    <input
-                        name="sender_signatory"
-                        value={formData.sender_signatory || ''}
-                        onChange={handleChange}
-                        className={getInputClass('sender_signatory')}
-                    />
+                    <OcrFieldWrapper fieldName="sender_signatory" onScanClick={openCapture} isElectron={isElectron}>
+                        <input
+                            name="sender_signatory"
+                            value={formData.sender_signatory || ''}
+                            onChange={handleChange}
+                            className={getInputClass('sender_signatory')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group full-width">
                     <label>{t('subject_label')}</label>
-                    <textarea
-                        name="subject"
-                        value={formData.subject || ''}
-                        onChange={handleChange}
-                        rows={2}
-                        className={getInputClass('subject')}
-                    />
+                    <OcrFieldWrapper fieldName="subject" onScanClick={openCapture} isElectron={isElectron}>
+                        <textarea
+                            name="subject"
+                            value={formData.subject || ''}
+                            onChange={handleChange}
+                            rows={2}
+                            className={getInputClass('subject')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
 
                 <div className="form-group full-width">
                     <label>{t('summary_label')}</label>
-                    <textarea
-                        name="content_summary"
-                        value={formData.content_summary || ''}
-                        onChange={handleChange}
-                        rows={4}
-                        className={getInputClass('content_summary')}
-                    />
+                    <OcrFieldWrapper fieldName="content_summary" onScanClick={openCapture} isElectron={isElectron}>
+                        <textarea
+                            name="content_summary"
+                            value={formData.content_summary || ''}
+                            onChange={handleChange}
+                            rows={4}
+                            className={getInputClass('content_summary')}
+                        />
+                    </OcrFieldWrapper>
                 </div>
             </div>
 
@@ -232,6 +268,30 @@ export const DocumentInlineEdit: React.FC<DocumentInlineEditProps> = ({ doc }) =
                 onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
                 message={notification.message}
                 type={notification.type}
+            />
+
+            {/* Screen Capture Overlay for OCR */}
+            {captureFieldName && (
+                <ScreenCaptureOverlay
+                    isOpen={!!captureFieldName}
+                    onClose={closeCapture}
+                    onCapture={(blob) => {
+                        if (captureFieldName) {
+                            handleCapture(blob, captureFieldName);
+                        }
+                        closeCapture();
+                    }}
+                    fieldName={captureFieldName}
+                    imageFile={doc.image_data as File | null}
+                />
+            )}
+
+            {/* Toast Notification for OCR feedback */}
+            <ToastNotification
+                isOpen={!!toast}
+                message={toast?.message || ''}
+                type={toast?.type || 'info'}
+                onClose={() => setToast(null)}
             />
         </div>
     );

@@ -190,6 +190,12 @@ const translations: Translations = {
     'ocr_go_to_settings': { ar: 'يرجى تثبيتها من الإعدادات', en: 'Please install it from Settings' },
     'ocr_failed': { ar: 'فشل استخراج النص', en: 'Text extraction failed' },
     'ocr_error': { ar: 'خطأ في استخراج النص', en: 'Text extraction error' },
+    'ocr_check_update': { ar: 'تحديث', en: 'Check' },
+
+    // Mobile Upload Picker
+    'choose_upload_method': { ar: 'اختر طريقة الرفع', en: 'Choose upload method' },
+    'choose_from_files': { ar: 'اختيار من الملفات', en: 'Choose from files' },
+    'take_photo': { ar: 'التقاط صورة', en: 'Take a photo' },
 };
 
 interface LanguageContextType {

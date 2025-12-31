@@ -1,10 +1,5 @@
-/**
- * Windows OCR Module
- * Uses Windows.Media.Ocr API via PowerShell for OCR functionality
- * Supports Arabic (ar-SA) and English (en-US) languages
- */
-
 const { exec } = require('child_process');
+const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -242,9 +237,18 @@ async function performOcr(imageBuffer, language = 'ar') {
     }
 
     // Path to OcrTool.exe (in ocr-tool/publish folder, or bundled with app)
-    const ocrToolPath = path.join(__dirname, 'ocr-tool', 'publish', 'OcrTool.exe');
+    let ocrToolPath;
+    if (app.isPackaged) {
+        // In production, it's in the resources folder (extraResources)
+        ocrToolPath = path.join(process.resourcesPath, 'ocr-tool', 'OcrTool.exe');
+    } else {
+        // In development, it's in the local source folder
+        ocrToolPath = path.join(__dirname, 'ocr-tool', 'publish', 'OcrTool.exe');
+    }
 
     return new Promise((resolve, reject) => {
+        console.log('Running OCR Tool from:', ocrToolPath); // Debug log
+
         exec(`"${ocrToolPath}" "${tempImageFile}" "${tempResultFile}" "${ocrLang}"`,
             { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 60000, windowsHide: true },
             async (error, stdout, stderr) => {
